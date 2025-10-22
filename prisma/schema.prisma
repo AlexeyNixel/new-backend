@@ -1,0 +1,70 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id    Int     @id @default(autoincrement())
+  email String  @unique
+  name  String?
+}
+
+model Post {
+  id            String     @id @default(uuid())
+  previewFileId String?
+  createdAt     DateTime   @default(now()) @db.DateTime(3)
+  updatedAt     DateTime   @updatedAt @db.DateTime(3)
+  publishedAt   DateTime   @default(now()) @db.DateTime(3)
+  title         String     @db.VarChar(200)
+  description   String?    @db.LongText
+  content       String?    @db.LongText
+  slug          String     @unique @db.VarChar(250)
+  isPublished   Boolean    @default(false)
+  isDeleted     Boolean    @default(false)
+  departmentId  String
+  pinned        Boolean    @default(false)
+  department    Department @relation(fields: [departmentId], references: [id], onDelete: NoAction)
+  preview       File?      @relation(fields: [previewFileId], references: [id], name: "PostPreviewFile")
+
+  @@index([departmentId])
+  @@index([previewFileId])
+  @@map("posts")
+}
+
+model Department {
+  id            String  @id @default(uuid())
+  oldId         Int?    @unique
+  previewFileId String?
+  title         String  @unique @db.VarChar(200)
+  slug          String  @unique @db.VarChar(250)
+  isDeleted     Boolean @default(false)
+  preview       File?   @relation(fields: [previewFileId], references: [id], name: "DepartmentPreviewFile")
+  posts         Post[]
+
+  @@index([previewFileId])
+  @@map("departments")
+}
+
+model File {
+  id           String       @id @default(uuid())
+  originalName String       @db.VarChar(200)
+  mimeType     String       @db.VarChar(50)
+  hash         String       @unique @db.VarChar(64)
+  path         String       @db.VarChar(400)
+  createdAt    DateTime     @default(now())
+  departments  Department[] @relation("DepartmentPreviewFile")
+  posts        Post[]       @relation("PostPreviewFile")
+
+  @@map("files")
+}
