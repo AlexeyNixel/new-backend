@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
   output   = "../generated/prisma"
@@ -21,21 +15,22 @@ model User {
 }
 
 model Post {
-  id            String     @id @default(uuid())
+  id            String        @id @default(uuid())
   previewFileId String?
-  createdAt     DateTime   @default(now()) @db.DateTime(3)
-  updatedAt     DateTime   @updatedAt @db.DateTime(3)
-  publishedAt   DateTime   @default(now()) @db.DateTime(3)
-  title         String     @db.VarChar(200)
-  description   String?    @db.LongText
-  content       String?    @db.LongText
-  slug          String     @unique @db.VarChar(250)
-  isPublished   Boolean    @default(false)
-  isDeleted     Boolean    @default(false)
+  createdAt     DateTime      @default(now()) @db.DateTime(3)
+  updatedAt     DateTime      @updatedAt @db.DateTime(3)
+  publishedAt   DateTime      @default(now()) @db.DateTime(3)
+  title         String        @db.VarChar(200)
+  description   String?       @db.LongText
+  content       String?       @db.LongText
+  slug          String        @unique @db.VarChar(250)
+  isPublished   Boolean       @default(false)
+  isDeleted     Boolean       @default(false)
   departmentId  String
-  pinned        Boolean    @default(false)
-  department    Department @relation(fields: [departmentId], references: [id], onDelete: NoAction)
-  preview       File?      @relation(fields: [previewFileId], references: [id], name: "PostPreviewFile")
+  pinned        Boolean       @default(false)
+  department    Department    @relation(fields: [departmentId], references: [id], onDelete: NoAction)
+  preview       File?         @relation(fields: [previewFileId], references: [id], name: "PostPreviewFile")
+  tags          TagsOnPosts[]
 
   @@index([departmentId])
   @@index([previewFileId])
@@ -43,17 +38,39 @@ model Post {
 }
 
 model Department {
-  id            String  @id @default(uuid())
-  oldId         Int?    @unique
-  previewFileId String?
-  title         String  @unique @db.VarChar(200)
-  slug          String  @unique @db.VarChar(250)
-  isDeleted     Boolean @default(false)
-  preview       File?   @relation(fields: [previewFileId], references: [id], name: "DepartmentPreviewFile")
+  id            String   @id @default(uuid())
+  title         String   @db.VarChar(200)
+  slug          String   @unique @db.VarChar(250)
+  isDeleted     Boolean  @default(false)
+  preview       File?    @relation(fields: [previewFileId], references: [id], name: "DepartmentPreviewFile")
+  createdAt     DateTime @default(now()) @db.DateTime()
+  updatedAt     DateTime @updatedAt @db.DateTime()
   posts         Post[]
+  previewFileId String?
 
   @@index([previewFileId])
   @@map("departments")
+}
+
+model Tag {
+  id        String        @id @default(uuid())
+  title     String        @db.VarChar(200)
+  slug      String        @unique @db.VarChar(250)
+  createdAt DateTime      @default(now()) @db.DateTime()
+  posts     TagsOnPosts[]
+
+  @@map("tags")
+}
+
+model TagsOnPosts {
+  postId     String
+  tagId      String
+  post       Post     @relation(fields: [postId], references: [id])
+  tag        Tag      @relation(fields: [tagId], references: [id])
+  assignedAt DateTime @default(now())
+
+  @@id([postId, tagId])
+  @@map("tags_on_posts")
 }
 
 model File {

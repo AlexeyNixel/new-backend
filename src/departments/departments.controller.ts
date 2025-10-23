@@ -6,10 +6,12 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { DepartmentsService } from './departments.service';
 import { CreateDepartmentDto } from './dto/create-department.dto';
 import { UpdateDepartmentDto } from './dto/update-department.dto';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
 @Controller('departments')
 export class DepartmentsController {
@@ -21,22 +23,25 @@ export class DepartmentsController {
   }
 
   @Get()
-  findAll() {
-    return this.departmentsService.findAll();
+  findAll(@Query() paginationQuery: PaginationQueryDto) {
+    return this.departmentsService.findAll(paginationQuery);
   }
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.departmentsService.findOne(+id);
+    return this.departmentsService.findOne(id);
   }
 
-  // @Patch(':id')
-  // update(@Param('id') id: string, @Body() updateDepartmentDto: UpdateDepartmentDto) {
-  //   return this.departmentsService.update(+id, updateDepartmentDto);
+  @Patch(':id')
+  update(
+    @Param('id') id: string,
+    @Body() updateDepartmentDto: UpdateDepartmentDto,
+  ) {
+    return this.departmentsService.update(id, updateDepartmentDto);
+  }
+
+  // @Delete(':id')
+  // remove(@Param('id') id: string) {
+  //   return this.departmentsService.remove(+id);
   // }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.departmentsService.remove(+id);
-  }
 }
