@@ -26,9 +26,9 @@ model Post {
   slug          String        @unique @db.VarChar(250)
   isPublished   Boolean       @default(false)
   isDeleted     Boolean       @default(false)
-  departmentId  String
-  pinned        Boolean       @default(false)
-  department    Department    @relation(fields: [departmentId], references: [id], onDelete: NoAction)
+  departmentId  String?
+  isPinned      Boolean       @default(false)
+  department    Department?   @relation(fields: [departmentId], references: [id], onDelete: Cascade)
   preview       File?         @relation(fields: [previewFileId], references: [id], name: "PostPreviewFile")
   tags          TagsOnPosts[]
 

@@ -68,6 +68,9 @@ export class DepartmentsService {
       where: {
         ...parseSlug(idOrSlug),
       },
+      include: {
+        preview: true,
+      },
     });
 
     if (!post) {

@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { FilesService } from './files.service';
 import { FilesController } from './files.controller';
 import { PrismaService } from '../prisma.service';
-import { ImageProcessingService } from '../common/services/image-processing.services';
+import { ImageProcessingService } from '../common/services/image-processing.service';
 import { MinioService } from '../common/services/minio.service';
 import { ConfigService } from '@nestjs/config';
 

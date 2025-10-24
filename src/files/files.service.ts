@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
-import { ImageProcessingService } from '../common/services/image-processing.services';
+import { ImageProcessingService } from '../common/services/image-processing.service';
 import { MinioService } from '../common/services/minio.service';
 
 export interface UploadImageResult {
@@ -29,7 +29,6 @@ export class FilesService {
   ) {
     const { quality = 80, maxWidth = 1920 } = options;
 
-    // Валидация файла
     this.imageProcessing.validateImage(file);
 
     try {
@@ -56,24 +55,22 @@ export class FilesService {
 
       const resultWithDimensions = {
         ...uploadResult,
+        url: uploadResult.url.split('10001')[1],
         width: processedImage.width,
         height: processedImage.height,
       };
 
-      // Сохраняем информацию о файле в базу данных
-      await this.saveFileToDatabase(file, resultWithDimensions);
-
-      return resultWithDimensions;
+      return await this.saveFileToDatabase(file, resultWithDimensions);
     } catch (error) {
       throw new BadRequestException(`File upload failed: ${error.message}`);
     }
   }
 
-  private async saveFileToDatabase(
+  private saveFileToDatabase(
     originalFile: Express.Multer.File,
     result: UploadImageResult,
-  ): Promise<void> {
-    await this.prismaService.file.create({
+  ) {
+    return this.prismaService.file.create({
       data: {
         originalName: originalFile.originalname,
         mimeType: 'image/webp',

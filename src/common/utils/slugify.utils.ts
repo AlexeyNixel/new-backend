@@ -9,7 +9,13 @@ export function createSlug(
   const now: string = DateTime.now().toFormat('yyyy-MM-dd-HH-mm');
 
   if (slug) {
-    return slug.toLowerCase();
+    return slugify(slug, {
+      replacement: '-',
+      remove: /[^\w\s]/gi,
+      lower: true,
+      strict: false,
+      trim: true,
+    });
   }
 
   const newSlug: string = slugify(title, {
@@ -17,7 +23,6 @@ export function createSlug(
     remove: /[^\w\s]/gi,
     lower: true,
     strict: false,
-    locale: 'ru',
     trim: true,
   });
 
