@@ -6,9 +6,17 @@ import { UserModule } from './user/user.module';
 import { PostsModule } from './posts/posts.module';
 import { DepartmentsModule } from './departments/departments.module';
 import { TagsModule } from './tags/tags.module';
+import { FilesModule } from './files/files.module';
 
 @Module({
-  imports: [ConfigModule.forRoot(), UserModule, PostsModule, DepartmentsModule, TagsModule],
+  imports: [
+    ConfigModule.forRoot(),
+    UserModule,
+    PostsModule,
+    DepartmentsModule,
+    TagsModule,
+    FilesModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })

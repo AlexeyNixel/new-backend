@@ -43,8 +43,8 @@ model Department {
   slug          String   @unique @db.VarChar(250)
   isDeleted     Boolean  @default(false)
   preview       File?    @relation(fields: [previewFileId], references: [id], name: "DepartmentPreviewFile")
-  createdAt     DateTime @default(now()) @db.DateTime()
-  updatedAt     DateTime @updatedAt @db.DateTime()
+  createdAt     DateTime @default(now()) @db.DateTime(3)
+  updatedAt     DateTime @updatedAt @db.DateTime(3)
   posts         Post[]
   previewFileId String?
 
@@ -56,7 +56,7 @@ model Tag {
   id        String        @id @default(uuid())
   title     String        @db.VarChar(200)
   slug      String        @unique @db.VarChar(250)
-  createdAt DateTime      @default(now()) @db.DateTime()
+  createdAt DateTime      @default(now()) @db.DateTime(3)
   posts     TagsOnPosts[]
 
   @@map("tags")
@@ -78,10 +78,23 @@ model File {
   originalName String       @db.VarChar(200)
   mimeType     String       @db.VarChar(50)
   hash         String       @unique @db.VarChar(64)
+  type         FileType
   path         String       @db.VarChar(400)
+  size         Int
+  width        Int?
+  height       Int?
   createdAt    DateTime     @default(now())
   departments  Department[] @relation("DepartmentPreviewFile")
   posts        Post[]       @relation("PostPreviewFile")
 
   @@map("files")
+}
+
+enum FileType {
+  IMAGE
+  DOCUMENT
+  VIDEO
+  AUDIO
+  ARCHIVE
+  OTHER
 }
