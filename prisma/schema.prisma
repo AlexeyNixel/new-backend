@@ -15,22 +15,24 @@ model User {
 }
 
 model Post {
-  id            String        @id @default(uuid())
+  id            String            @id @default(uuid())
   previewFileId String?
-  createdAt     DateTime      @default(now()) @db.DateTime(3)
-  updatedAt     DateTime      @updatedAt @db.DateTime(3)
-  publishedAt   DateTime      @default(now()) @db.DateTime(3)
-  title         String        @db.VarChar(200)
-  description   String?       @db.LongText
-  content       String?       @db.LongText
-  slug          String        @unique @db.VarChar(250)
-  isPublished   Boolean       @default(false)
-  isDeleted     Boolean       @default(false)
+  createdAt     DateTime          @default(now()) @db.DateTime(3)
+  updatedAt     DateTime          @updatedAt @db.DateTime(3)
+  publishedAt   DateTime          @default(now()) @db.DateTime(3)
+  title         String            @db.VarChar(200)
+  description   String?           @db.LongText
+  content       String?           @db.LongText
+  slug          String            @unique @db.VarChar(250)
+  isPublished   Boolean           @default(false)
+  isDeleted     Boolean           @default(false)
   departmentId  String?
-  isPinned      Boolean       @default(false)
-  department    Department?   @relation(fields: [departmentId], references: [id], onDelete: Cascade)
-  preview       File?         @relation(fields: [previewFileId], references: [id], name: "PostPreviewFile")
+  isPinned      Boolean           @default(false)
+  department    Department?       @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  preview       File?             @relation(fields: [previewFileId], references: [id], name: "PostPreviewFile")
   tags          TagsOnPosts[]
+  Slide         MainSliderSlide[]
+  Notification  Notification[]
 
   @@index([departmentId])
   @@index([previewFileId])
@@ -74,20 +76,66 @@ model TagsOnPosts {
 }
 
 model File {
-  id           String       @id @default(uuid())
-  originalName String       @db.VarChar(200)
-  mimeType     String       @db.VarChar(50)
-  hash         String       @unique @db.VarChar(64)
+  id           String            @id @default(uuid())
+  originalName String            @db.VarChar(200)
+  mimeType     String            @db.VarChar(50)
+  hash         String            @unique @db.VarChar(64)
   type         FileType
-  path         String       @db.VarChar(400)
+  path         String            @db.VarChar(400)
   size         Int
   width        Int?
   height       Int?
-  createdAt    DateTime     @default(now())
-  departments  Department[] @relation("DepartmentPreviewFile")
-  posts        Post[]       @relation("PostPreviewFile")
+  createdAt    DateTime          @default(now())
+  departments  Department[]      @relation("DepartmentPreviewFile")
+  posts        Post[]            @relation("PostPreviewFile")
+  Slide        MainSliderSlide[]
 
   @@map("files")
+}
+
+model MainSliderSlide {
+  id          String   @id @default(uuid())
+  createdAt   DateTime @default(now())
+  isDeleted   Boolean  @default(false)
+  slideOrder  Int      @default(0)
+  postId      String?
+  imageFileId String?
+  url         String?
+  post        Post?    @relation(fields: [postId], references: [id], onDelete: SetNull)
+  image       File?    @relation(fields: [imageFileId], references: [id])
+
+  @@index([imageFileId])
+  @@index([slideOrder])
+  @@index([postId])
+  @@map("main_slider_slides")
+}
+
+model Notification {
+  id          String    @id @default(uuid())
+  title       String    @db.VarChar(200)
+  description String    @db.VarChar(200)
+  postId      String?
+  startTime   DateTime  @default(now())
+  endTime     DateTime?
+  post        Post?     @relation(fields: [postId], references: [id])
+
+  @@index([postId])
+  @@map("notifications")
+}
+
+model Book {
+  id          String  @id @default(uuid())
+  title       String  @db.VarChar(200)
+  description String  @db.LongText
+  content     String  @db.LongText
+  category    String?  @db.VarChar(200)
+  isDeleted   Boolean @default(false)
+  isVideo     Boolean @default(false)
+  litresLink  String?
+}
+
+model NavigationItem {
+  id String @id @default(uuid())
 }
 
 enum FileType {

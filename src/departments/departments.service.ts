@@ -24,7 +24,6 @@ export class DepartmentsService {
 
     return this.prismaService.department.create({
       data: {
-        id: v4(),
         ...createDepartmentDto,
       },
     });
