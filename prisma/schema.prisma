@@ -9,9 +9,13 @@ datasource db {
 }
 
 model User {
-  id    Int     @id @default(autoincrement())
-  email String  @unique
-  name  String?
+  id        String   @id @default(uuid())
+  username  String   @unique
+  password  String
+  name      String?
+  createdAt DateTime @default(now())
+
+  @@map("users")
 }
 
 model Post {
@@ -45,8 +49,8 @@ model Department {
   slug          String   @unique @db.VarChar(250)
   isDeleted     Boolean  @default(false)
   preview       File?    @relation(fields: [previewFileId], references: [id], name: "DepartmentPreviewFile")
-  createdAt     DateTime @default(now()) @db.DateTime(3)
-  updatedAt     DateTime @updatedAt @db.DateTime(3)
+  createdAt     DateTime @default(now()) @db.DateTime(0)
+  updatedAt     DateTime @updatedAt
   posts         Post[]
   previewFileId String?
 
@@ -93,6 +97,19 @@ model File {
   @@map("files")
 }
 
+model Event {
+  id        String   @id @default(uuid())
+  title     String   @db.VarChar(200)
+  content   String   @db.LongText
+  phone     String   @db.VarChar(20)
+  age       Int?
+  place     String
+  eventTime DateTime
+  isDeleted Boolean  @default(false)
+
+  @@map("events")
+}
+
 model MainSliderSlide {
   id          String   @id @default(uuid())
   createdAt   DateTime @default(now())
@@ -128,14 +145,35 @@ model Book {
   title       String  @db.VarChar(200)
   description String  @db.LongText
   content     String  @db.LongText
-  category    String?  @db.VarChar(200)
+  category    String? @db.VarChar(200)
   isDeleted   Boolean @default(false)
   isVideo     Boolean @default(false)
   litresLink  String?
+  test        String
+
+  @@map("books")
 }
 
 model NavigationItem {
-  id String @id @default(uuid())
+  id          String   @id @default(uuid())
+  title       String   @db.VarChar(100)
+  url         String?  @db.VarChar(500)
+  slug        String   @unique @db.VarChar(100)
+  description String?  @db.VarChar(200)
+  icon        String?  @db.VarChar(50)
+  order       Int      @default(0)
+  isExternal  Boolean  @default(false)
+  target      String   @default("_self")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  parentId String?
+  parent   NavigationItem?  @relation("NavigationChildren", fields: [parentId], references: [id])
+  children NavigationItem[] @relation("NavigationChildren")
+
+  @@index([parentId])
+  @@index([order])
+  @@map("navigation_items")
 }
 
 enum FileType {

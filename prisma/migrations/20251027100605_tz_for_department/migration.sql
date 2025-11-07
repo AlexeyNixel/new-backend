@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE `departments` MODIFY `createdAt` TIMESTAMP(7) NOT NULL DEFAULT CURRENT_TIMESTAMP(7);

@@ -3,10 +3,10 @@ import { CreateDepartmentDto } from './dto/create-department.dto';
 import { UpdateDepartmentDto } from './dto/update-department.dto';
 import { createSlug } from '../common/utils/slugify.utils';
 import { PrismaService } from '../prisma.service';
-import { v4 } from 'uuid';
 import { parseSlug } from '../common/utils/validate.utils';
 import { ResponseService } from '../common/services/response.service';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { DateTime } from 'luxon';
 
 @Injectable()
 export class DepartmentsService {
@@ -22,9 +22,12 @@ export class DepartmentsService {
       false,
     );
 
+    console.log(DateTime.now().toString());
+
     return this.prismaService.department.create({
       data: {
         ...createDepartmentDto,
+        createdAt: DateTime.now().toString(),
       },
     });
   }
