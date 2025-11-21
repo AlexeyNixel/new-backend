@@ -33,6 +33,9 @@ export class NavigationItemService {
 
   async findAll() {
     const items = await this.prismaService.navigationItem.findMany({
+      orderBy: {
+        order: 'asc',
+      },
       select: {
         id: true,
         title: true,
@@ -46,6 +49,19 @@ export class NavigationItemService {
       },
     });
     return this.buildTree(items);
+  }
+
+  async updateOrderBatch(updates: Array<{ id: string; order: number }>) {
+    return this.prismaService.$transaction(async (tx) => {
+      const updatePromises = updates.map(({ id, order }) =>
+        tx.navigationItem.update({
+          where: { id },
+          data: { order },
+        }),
+      );
+
+      return await Promise.all(updatePromises);
+    });
   }
 
   findOne(id: number) {

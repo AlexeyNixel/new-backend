@@ -6,14 +6,21 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { TagsService } from './tags.service';
 import { CreateTagDto } from './dto/create-tag.dto';
 import { UpdateTagDto } from './dto/update-tag.dto';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
 @Controller('tags')
 export class TagsController {
   constructor(private readonly tagsService: TagsService) {}
+
+  @Get('migrate')
+  migrate() {
+    return this.tagsService.migrateTag();
+  }
 
   @Post()
   create(@Body() createTagDto: CreateTagDto) {
@@ -21,8 +28,8 @@ export class TagsController {
   }
 
   @Get()
-  findAll() {
-    return this.tagsService.findAll();
+  findAll(@Query() paginationQuery: PaginationQueryDto) {
+    return this.tagsService.findAll(paginationQuery);
   }
 
   @Get(':id')

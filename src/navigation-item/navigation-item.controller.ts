@@ -1,7 +1,16 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+} from '@nestjs/common';
 import { NavigationItemService } from './navigation-item.service';
 import { CreateNavigationItemDto } from './dto/create-navigation-item.dto';
 import { UpdateNavigationItemDto } from './dto/update-navigation-item.dto';
+import { BatchUpdateNavigationItemDto } from './dto/update-batch.dto';
 
 @Controller('navigation-item')
 export class NavigationItemController {
@@ -10,6 +19,11 @@ export class NavigationItemController {
   @Post()
   create(@Body() createNavigationItemDto: CreateNavigationItemDto) {
     return this.navigationItemService.create(createNavigationItemDto);
+  }
+
+  @Post('batch-update')
+  updateOrderBatch(@Body() batchUpdateDto: BatchUpdateNavigationItemDto) {
+    return this.navigationItemService.updateOrderBatch(batchUpdateDto.data);
   }
 
   @Get()
@@ -23,7 +37,10 @@ export class NavigationItemController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateNavigationItemDto: UpdateNavigationItemDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateNavigationItemDto: UpdateNavigationItemDto,
+  ) {
     return this.navigationItemService.update(+id, updateNavigationItemDto);
   }
 

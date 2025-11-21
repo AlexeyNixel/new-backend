@@ -22,8 +22,6 @@ export class DepartmentsService {
       false,
     );
 
-    console.log(DateTime.now().toString());
-
     return this.prismaService.department.create({
       data: {
         ...createDepartmentDto,
@@ -85,14 +83,13 @@ export class DepartmentsService {
   }
 
   update(id: string, updateDepartmentDto: UpdateDepartmentDto) {
-    if (!updateDepartmentDto.slug) {
-      updateDepartmentDto.slug = undefined;
+    if (!updateDepartmentDto.slug && updateDepartmentDto.title) {
+      updateDepartmentDto.slug = createSlug(updateDepartmentDto.title);
     }
 
     return this.prismaService.department.update({
       where: { id: id },
       data: {
-        slug: '',
         ...updateDepartmentDto,
       },
     });

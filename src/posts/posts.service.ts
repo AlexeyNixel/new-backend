@@ -8,10 +8,16 @@ import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { ResponseService } from '../common/services/response.service';
 import { createInclude } from '../common/utils/include.utils';
 import { parseSlug } from '../common/utils/validate.utils';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
+import { OldPost } from './dto/old-post.dto';
 
 @Injectable()
 export class PostsService {
   constructor(
+    @InjectDataSource('sourceDB')
+    private readonly sourceDB: DataSource,
+
     private prismaService: PrismaService,
     private responseService: ResponseService,
   ) {}
@@ -72,14 +78,25 @@ export class PostsService {
       isDeleted,
       sortBy = 'publishedAt',
       sortOrder = 'desc',
+      search = '',
     } = paginationQuery;
 
     const skip = (page - 1) * limit;
     const include = createInclude(includeQuery);
 
+    const whereParams = {
+      isDeleted: isDeleted ? undefined : false,
+      OR: [
+        {
+          title: { contains: search },
+          content: { contains: search },
+        },
+      ],
+    };
+
     const [posts, total] = await Promise.all([
       this.prismaService.post.findMany({
-        where: { isDeleted: isDeleted ? undefined : false },
+        where: { ...whereParams },
         orderBy: {
           [sortBy]: sortOrder,
         },
@@ -90,7 +107,9 @@ export class PostsService {
         },
       }),
 
-      this.prismaService.post.count(),
+      this.prismaService.post.count({
+        where: { ...whereParams },
+      }),
     ]);
 
     return this.responseService.paginated(posts, total, page, limit);
@@ -138,6 +157,11 @@ export class PostsService {
         ...parseSlug(id),
       },
     });
+    console.log(updatePostDto);
+    if (post && updatePostDto.previewFileId === post.previewFileId) {
+      console.log(updatePostDto);
+      delete updatePostDto.previewFileId;
+    }
 
     if (post && updatePostDto.tags) {
       await this.prismaService.tagsOnPosts.deleteMany({
@@ -178,6 +202,50 @@ export class PostsService {
         ...(updatePostDto as any),
       },
     });
+  }
+
+  async migratePosts() {
+    const oldPost: OldPost[] = await this.sourceDB.query('SELECT * FROM Entry');
+    //@ts-ignore
+    const errors: oldPost[] = [];
+
+    for (const post of oldPost) {
+      try {
+        await this.prismaService.post.create({
+          data: {
+            id: post.id,
+            title: post.title,
+            description: post.desc,
+            content: post.content,
+            previewFileId: post.fileId,
+            createdAt: post.createdAt,
+            slug: post.slug,
+            isPublished: true,
+            isDeleted: !!post.isDeleted,
+            departmentId: post.departmentId,
+            isPinned: !!post.pinned,
+          },
+        });
+      } catch (e) {
+        throw new Error(e);
+        errors.push(post);
+      }
+    }
+
+    return errors;
+  }
+
+  async migratePostOnRubric() {
+    const data = await this.sourceDB.query('SELECT * FROM RubricsOnEntries');
+    console.log(data);
+    for (const tag of data) {
+      await this.prismaService.tagsOnPosts.create({
+        data: {
+          postId: tag.entryId,
+          tagId: tag.rubricId,
+        },
+      });
+    }
   }
 
   remove(id: number) {

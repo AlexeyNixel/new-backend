@@ -83,7 +83,7 @@ model File {
   id           String            @id @default(uuid())
   originalName String            @db.VarChar(200)
   mimeType     String            @db.VarChar(50)
-  hash         String            @unique @db.VarChar(64)
+  hash         String?           @unique @db.VarChar(64)
   type         FileType
   path         String            @db.VarChar(400)
   size         Int
@@ -99,12 +99,13 @@ model File {
 
 model Event {
   id        String   @id @default(uuid())
-  title     String   @db.VarChar(200)
+  title     String   @db.VarChar(500)
   content   String   @db.LongText
   phone     String   @db.VarChar(20)
   age       Int?
   place     String
   eventTime DateTime
+  createdAt   DateTime @default(now())
   isDeleted Boolean  @default(false)
 
   @@map("events")
@@ -183,4 +184,5 @@ enum FileType {
   AUDIO
   ARCHIVE
   OTHER
+  EXHIBITION
 }

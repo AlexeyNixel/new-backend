@@ -1,26 +1,25 @@
 import {
   Controller,
-  Get,
   Post,
   Body,
-  Patch,
-  Param,
-  Delete,
   UseInterceptors,
-  UploadedFiles,
   UploadedFile,
   ParseFilePipe,
   MaxFileSizeValidator,
   FileTypeValidator,
+  Get,
 } from '@nestjs/common';
 import { FilesService } from './files.service';
-import { CreateFileDto } from './dto/create-file.dto';
-import { UpdateFileDto } from './dto/update-file.dto';
-import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('files')
 export class FilesController {
   constructor(private readonly filesService: FilesService) {}
+
+  @Get('migrate')
+  async migrate() {
+    return this.filesService.migrateTag();
+  }
 
   @Post('upload/image')
   @UseInterceptors(FileInterceptor('file'))
@@ -36,6 +35,7 @@ export class FilesController {
     file: Express.Multer.File,
     @Body() body: { quality?: string; maxWidth?: string },
   ) {
+    console.log(body);
     const quality = body.quality ? parseInt(body.quality) : 80;
     const maxWidth = body.maxWidth ? parseInt(body.maxWidth) : 1920;
     return this.filesService.uploadImage(file, {

@@ -17,6 +17,16 @@ import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 export class PostsController {
   constructor(private readonly postsService: PostsService) {}
 
+  @Get('migrate')
+  migrate() {
+    return this.postsService.migratePosts();
+  }
+
+  @Get('migrate/tag')
+  migrateTag() {
+    return this.postsService.migratePostOnRubric();
+  }
+
   @Post()
   create(@Body() createPostDto: CreatePostDto) {
     return this.postsService.create(createPostDto);

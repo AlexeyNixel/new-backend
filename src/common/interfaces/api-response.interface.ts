@@ -16,6 +16,7 @@ export interface ApiResponse<T> {
 }
 
 export interface PaginationQuery {
+  isDeleted?: boolean;
   page?: number;
   limit?: number;
   sortBy?: string;
