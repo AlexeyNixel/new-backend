@@ -91,27 +91,38 @@ export class EventService {
   remove(id: number) {
     return `This action removes a #${id} event`;
   }
+
   async migrate() {
     const events = await this.sourceDB.query('SELECT * FROM Affiche');
-
     for (const event of events) {
+      const { title, age } = this.findAge(event.title);
       const now =
-        event.eventDate.toISOString().slice(0, 10) +
-        event.eventDate.toISOString().slice(10);
+        event.eventDate.toISOString().slice(0, 11) + event.eventTime + '.000Z';
       await this.prismaService.event.create({
         data: {
           id: event.id,
-          title: event.title,
+          title: title,
           content: event.desc,
           phone: event.phone || '123',
           place: event.eventPlace || 'guest',
           eventTime: now,
           createdAt: now,
+          age: age ? +age : undefined,
           isDeleted: !!event.IsDeleted,
         },
       });
     }
 
     return 'Миграция проведена';
+  }
+
+  private findAge(text: string) {
+    const match = text.match(/\((\d+)/);
+    const cleanTitle = text.replace(/\s*\([^)]+\)\s*$/, '').trim();
+    const age = match ? match[1] : null;
+    return {
+      title: cleanTitle,
+      age: age,
+    };
   }
 }

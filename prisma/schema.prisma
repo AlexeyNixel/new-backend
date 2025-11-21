@@ -104,8 +104,8 @@ model Event {
   phone     String   @db.VarChar(20)
   age       Int?
   place     String
-  eventTime DateTime
-  createdAt   DateTime @default(now())
+  eventTime DateTime @db.DateTime(3)
+  createdAt DateTime @default(now())
   isDeleted Boolean  @default(false)
 
   @@map("events")
