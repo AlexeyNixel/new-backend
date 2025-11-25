@@ -1,7 +1,7 @@
 export class CreateMainSliderDto {
-  isDeleted?: boolean;
-  slideOrder: string;
-  postId?: string;
-  imageFileId?: string;
+  postId: string;
+  slideOrder: number;
+  isDeleted: boolean;
+  imageFileId: string;
   url: string;
 }

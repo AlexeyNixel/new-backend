@@ -18,7 +18,6 @@ export class MainSliderService {
   ) {}
   create(createMainSliderDto: CreateMainSliderDto) {
     return this.prismaService.mainSliderSlide.create({
-      // @ts-ignore
       data: {
         id: v4(),
         ...createMainSliderDto,
@@ -66,8 +65,15 @@ export class MainSliderService {
     return `This action returns a #${id} mainSlider`;
   }
 
-  update(id: number, updateMainSliderDto: UpdateMainSliderDto) {
-    return `This action updates a #${id} mainSlider`;
+  update(id: string, updateMainSliderDto: UpdateMainSliderDto) {
+    return this.prismaService.mainSliderSlide.update({
+      where: {
+        id: id,
+      },
+      data: {
+        ...updateMainSliderDto,
+      },
+    });
   }
 
   async migrate() {

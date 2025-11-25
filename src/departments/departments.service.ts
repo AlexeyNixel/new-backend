@@ -22,6 +22,18 @@ export class DepartmentsService {
       false,
     );
 
+    const dublicate = await this.prismaService.department.findUnique({
+      where: {
+        slug: createDepartmentDto.slug,
+      },
+    });
+
+    if (dublicate) {
+      return {
+        message: 'Отдел с таким именем уже существует',
+      };
+    }
+
     return this.prismaService.department.create({
       data: {
         ...createDepartmentDto,

@@ -41,6 +41,6 @@ export class MainSliderController {
     @Param('id') id: string,
     @Body() updateMainSliderDto: UpdateMainSliderDto,
   ) {
-    return this.mainSliderService.update(+id, updateMainSliderDto);
+    return this.mainSliderService.update(id, updateMainSliderDto);
   }
 }
