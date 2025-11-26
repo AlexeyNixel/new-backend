@@ -5,4 +5,5 @@ export class PaginationQueryDto {
   sortBy?: string;
   sortOrder?: 'asc' | 'desc' = 'desc';
   search?: string;
+  include?: string;
 }

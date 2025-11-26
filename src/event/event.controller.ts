@@ -5,13 +5,14 @@ import {
   Body,
   Patch,
   Param,
-  Delete,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { EventService } from './event.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('event')
 export class EventController {
@@ -22,6 +23,7 @@ export class EventController {
     return this.eventService.migrate();
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post()
   create(@Body() createEventDto: CreateEventDto) {
     return this.eventService.create(createEventDto);
@@ -37,13 +39,9 @@ export class EventController {
     return this.eventService.findOne(id);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateEventDto: UpdateEventDto) {
     return this.eventService.update(id, updateEventDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.eventService.remove(+id);
   }
 }

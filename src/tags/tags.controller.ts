@@ -7,11 +7,13 @@ import {
   Param,
   Delete,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { TagsService } from './tags.service';
 import { CreateTagDto } from './dto/create-tag.dto';
 import { UpdateTagDto } from './dto/update-tag.dto';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('tags')
 export class TagsController {
@@ -22,6 +24,7 @@ export class TagsController {
     return this.tagsService.migrateTag();
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post()
   create(@Body() createTagDto: CreateTagDto) {
     return this.tagsService.create(createTagDto);
@@ -37,13 +40,9 @@ export class TagsController {
     return this.tagsService.findOne(id);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateTagDto: UpdateTagDto) {
     return this.tagsService.update(+id, updateTagDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.tagsService.remove(+id);
   }
 }

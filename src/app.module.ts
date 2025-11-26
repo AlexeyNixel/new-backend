@@ -15,6 +15,8 @@ import { PrismaService } from './prisma.service';
 import { MigrationModule } from './migration/migration.module';
 import { EventModule } from './event/event.module';
 import { PrismaModule } from './prisma.module';
+import { BookModule } from './book/book.module';
+import { BookCategoryModule } from './book-category/book-category.module';
 
 @Module({
   imports: [
@@ -63,6 +65,8 @@ import { PrismaModule } from './prisma.module';
     }),
     MigrationModule,
     EventModule,
+    BookModule,
+    BookCategoryModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

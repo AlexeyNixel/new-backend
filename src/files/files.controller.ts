@@ -8,9 +8,11 @@ import {
   MaxFileSizeValidator,
   FileTypeValidator,
   Get,
+  UseGuards,
 } from '@nestjs/common';
 import { FilesService } from './files.service';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('files')
 export class FilesController {
@@ -21,6 +23,7 @@ export class FilesController {
     return this.filesService.migrateTag();
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post('upload/image')
   @UseInterceptors(FileInterceptor('file'))
   async uploadImage(
@@ -35,7 +38,6 @@ export class FilesController {
     file: Express.Multer.File,
     @Body() body: { quality?: string; maxWidth?: string },
   ) {
-    console.log(body);
     const quality = body.quality ? parseInt(body.quality) : 80;
     const maxWidth = body.maxWidth ? parseInt(body.maxWidth) : 1920;
     return this.filesService.uploadImage(file, {

@@ -18,30 +18,30 @@ model User {
   @@map("users")
 }
 
-  model Post {
-    id            String            @id @default(uuid())
-    previewFileId String?
-    createdAt     DateTime          @default(now()) @db.DateTime(3)
-    updatedAt     DateTime          @updatedAt @db.DateTime(3)
-    publishedAt   DateTime          @default(now()) @db.DateTime(3)
-    title         String            @db.VarChar(200)
-    description   String?           @db.LongText
-    content       String?           @db.LongText
-    slug          String            @unique @db.VarChar(250)
-    isPublished   Boolean           @default(false)
-    isDeleted     Boolean           @default(false)
-    departmentId  String?
-    isPinned      Boolean           @default(false)
-    department    Department?       @relation(fields: [departmentId], references: [id], onDelete: Cascade)
-    preview       File?             @relation(fields: [previewFileId], references: [id], name: "PostPreviewFile")
-    tags          TagsOnPosts[]
-    Slide         MainSliderSlide[]
-    Notification  Notification[]
+model Post {
+  id            String            @id @default(uuid())
+  previewFileId String?
+  createdAt     DateTime          @default(now()) @db.DateTime(3)
+  updatedAt     DateTime          @updatedAt @db.DateTime(3)
+  publishedAt   DateTime          @default(now()) @db.DateTime(3)
+  title         String            @db.VarChar(200)
+  description   String?           @db.LongText
+  content       String?           @db.LongText
+  slug          String            @unique @db.VarChar(250)
+  isPublished   Boolean           @default(false)
+  isDeleted     Boolean           @default(false)
+  departmentId  String?
+  isPinned      Boolean           @default(false)
+  department    Department?       @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  preview       File?             @relation(fields: [previewFileId], references: [id], name: "PostPreviewFile")
+  tags          TagsOnPosts[]
+  Slide         MainSliderSlide[]
+  Notification  Notification[]
 
-    @@index([departmentId])
-    @@index([previewFileId])
-    @@map("posts")
-  }
+  @@index([departmentId])
+  @@index([previewFileId])
+  @@map("posts")
+}
 
 model Department {
   id            String   @id @default(uuid())
@@ -92,7 +92,8 @@ model File {
   createdAt    DateTime          @default(now())
   departments  Department[]      @relation("DepartmentPreviewFile")
   posts        Post[]            @relation("PostPreviewFile")
-  Slide        MainSliderSlide[]
+  books        Book[]            @relation("BookPreviewFile")
+  slide        MainSliderSlide[]
 
   @@map("files")
 }
@@ -142,17 +143,40 @@ model Notification {
 }
 
 model Book {
-  id          String  @id @default(uuid())
-  title       String  @db.VarChar(200)
-  description String  @db.LongText
-  content     String  @db.LongText
-  category    String? @db.VarChar(200)
-  isDeleted   Boolean @default(false)
-  isVideo     Boolean @default(false)
-  litresLink  String?
-  test        String
+  id            String             @id @default(uuid()) @db.VarChar(250)
+  slug          String             @unique @db.VarChar(250)
+  title         String             @db.VarChar(200)
+  description   String             @db.LongText
+  content       String             @db.LongText
+  categories    CategoriesOnBook[]
+  previewFileId String?
+  isDeleted     Boolean            @default(false)
+  isVideo       Boolean            @default(false)
+  place         String             @db.VarChar(200)
+  litresLink    String?
+  createdAt     DateTime           @default(now()) @db.DateTime(3)
+  preview       File?              @relation(fields: [previewFileId], references: [id], name: "BookPreviewFile")
 
+  @@index([previewFileId])
   @@map("books")
+}
+
+model BookCategory {
+  id        String             @id @default(uuid())
+  label     String
+  books     CategoriesOnBook[]
+  createdAt DateTime           @default(now()) @db.DateTime(3)
+}
+
+model CategoriesOnBook {
+  bookId     String
+  categoryId String
+  book       Book         @relation(fields: [bookId], references: [id])
+  category   BookCategory @relation(fields: [categoryId], references: [id])
+  assignedAt DateTime     @default(now())
+
+  @@id([bookId, categoryId])
+  @@map("categories_on_book")
 }
 
 model NavigationItem {

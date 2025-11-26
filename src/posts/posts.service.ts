@@ -157,9 +157,8 @@ export class PostsService {
         ...parseSlug(id),
       },
     });
-    console.log(updatePostDto);
+
     if (post && updatePostDto.previewFileId === post.previewFileId) {
-      console.log(updatePostDto);
       delete updatePostDto.previewFileId;
     }
 
@@ -199,7 +198,7 @@ export class PostsService {
         department: true,
       },
       data: {
-        ...(updatePostDto as any),
+        ...updateData,
       },
     });
   }
