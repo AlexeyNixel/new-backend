@@ -80,20 +80,21 @@ model TagsOnPosts {
 }
 
 model File {
-  id           String            @id @default(uuid())
-  originalName String            @db.VarChar(200)
-  mimeType     String            @db.VarChar(50)
-  hash         String?           @unique @db.VarChar(64)
-  type         FileType
-  path         String            @db.VarChar(400)
-  size         Int
-  width        Int?
-  height       Int?
-  createdAt    DateTime          @default(now())
-  departments  Department[]      @relation("DepartmentPreviewFile")
-  posts        Post[]            @relation("PostPreviewFile")
-  books        Book[]            @relation("BookPreviewFile")
-  slide        MainSliderSlide[]
+  id             String            @id @default(uuid())
+  originalName   String            @db.VarChar(200)
+  mimeType       String            @db.VarChar(50)
+  hash           String?           @unique @db.VarChar(64)
+  type           FileType
+  path           String            @db.VarChar(400)
+  size           Int
+  width          Int?
+  height         Int?
+  createdAt      DateTime          @default(now())
+  departments    Department[]      @relation("DepartmentPreviewFile")
+  posts          Post[]            @relation("PostPreviewFile")
+  books          Book[]            @relation("BookPreviewFile")
+  BookCollection BookCollection[]  @relation("CollectionPreviewFile")
+  slide          MainSliderSlide[]
 
   @@map("files")
 }
@@ -148,7 +149,7 @@ model Book {
   title         String             @db.VarChar(200)
   description   String             @db.LongText
   content       String             @db.LongText
-  categories    CategoriesOnBook[]
+  collections   BookOnCollection[]
   previewFileId String?
   isDeleted     Boolean            @default(false)
   isVideo       Boolean            @default(false)
@@ -161,22 +162,29 @@ model Book {
   @@map("books")
 }
 
-model BookCategory {
-  id        String             @id @default(uuid())
-  label     String
-  books     CategoriesOnBook[]
-  createdAt DateTime           @default(now()) @db.DateTime(3)
+model BookCollection {
+  id            String             @id @default(uuid())
+  label         String
+  books         BookOnCollection[]
+  isDeleted     Boolean            @default(false)
+  previewFileId String?
+  createdAt     DateTime           @default(now()) @db.DateTime(3)
+
+  preview File? @relation(fields: [previewFileId], references: [id], name: "CollectionPreviewFile")
+
+  @@index([previewFileId])
+  @@map("book_collection")
 }
 
-model CategoriesOnBook {
-  bookId     String
-  categoryId String
-  book       Book         @relation(fields: [bookId], references: [id])
-  category   BookCategory @relation(fields: [categoryId], references: [id])
-  assignedAt DateTime     @default(now())
+model BookOnCollection {
+  bookId        String
+  collectionsId String
+  book          Book           @relation(fields: [bookId], references: [id])
+  collections   BookCollection @relation(fields: [collectionsId], references: [id])
+  assignedAt    DateTime       @default(now())
 
-  @@id([bookId, categoryId])
-  @@map("categories_on_book")
+  @@id([bookId, collectionsId])
+  @@map("books_on_collections")
 }
 
 model NavigationItem {

@@ -6,6 +6,6 @@ export class CreateBookDto {
   isDeleted: boolean;
   isVideo: boolean;
   place: string;
-  categories?: string[];
+  collections?: string[];
   litresLink?: string;
 }

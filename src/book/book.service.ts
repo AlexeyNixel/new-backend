@@ -21,7 +21,7 @@ export class BookService {
   ) {}
 
   async create(createBookDto: CreateBookDto) {
-    const { categories, ...newBook } = createBookDto;
+    const { collections, ...newBook } = createBookDto;
 
     newBook.slug = createSlug(newBook.title, newBook.slug);
 
@@ -32,12 +32,12 @@ export class BookService {
       },
     });
 
-    if (categories) {
-      for (const category of categories) {
-        await this.prismaService.categoriesOnBook.create({
+    if (collections) {
+      for (const collection of collections) {
+        await this.prismaService.bookOnCollection.create({
           data: {
             bookId: book.id,
-            categoryId: category,
+            collectionsId: collection,
           },
         });
       }
@@ -87,9 +87,9 @@ export class BookService {
         ...parseSlug(id),
       },
       include: {
-        categories: {
+        collections: {
           select: {
-            category: {
+            collections: {
               select: {
                 id: true,
                 label: true,
@@ -108,15 +108,15 @@ export class BookService {
 
     return {
       ...book,
-      categories: book.categories.map((category) => ({
-        id: category.category.id,
-        label: category.category.label,
+      collections: book.collections.map((collection) => ({
+        id: collection.collections.id,
+        label: collection.collections.label,
       })),
     };
   }
 
   async update(id: string, updateBookDto: UpdateBookDto) {
-    const { categories, ...updateData } = updateBookDto;
+    const { collections, ...updateData } = updateBookDto;
     const book = await this.prismaService.book.findUnique({
       where: {
         ...parseSlug(id),
@@ -129,20 +129,20 @@ export class BookService {
       };
     }
 
-    if (categories) {
-      await this.prismaService.categoriesOnBook.deleteMany({
+    if (collections) {
+      await this.prismaService.bookOnCollection.deleteMany({
         where: {
           bookId: book.id,
         },
       });
 
-      const categoriesData = categories.map((categoryId) => ({
-        categoryId: categoryId,
+      const collectionsData = collections.map((collectionsId) => ({
+        collectionsId: collectionsId,
         bookId: book.id,
       }));
 
-      await this.prismaService.categoriesOnBook.createMany({
-        data: categoriesData,
+      await this.prismaService.bookOnCollection.createMany({
+        data: collectionsData,
         skipDuplicates: true,
       });
     }
@@ -162,22 +162,22 @@ export class BookService {
   }
 
   async migrate() {
-    const books = await this.sourceDB.query('SELECT * FROM Book');
-
-    for (const book of books) {
-      try {
-        await this.prismaService.book.update({
-          where: {
-            id: book.id,
-          },
-          //@ts-ignore
-          data: {
-            previewFileId: book.fileId,
-          },
-        });
-      } catch (e) {
-        console.log(e);
-      }
-    }
+    // const books = await this.sourceDB.query('SELECT * FROM Book');
+    //
+    // for (const book of books) {
+    //   try {
+    //     await this.prismaService.book.update({
+    //       where: {
+    //         id: book.id,
+    //       },
+    //       //@ts-ignore
+    //       data: {
+    //         previewFileId: book.fileId,
+    //       },
+    //     });
+    //   } catch (e) {
+    //     console.log(e);
+    //   }
+    // }
   }
 }

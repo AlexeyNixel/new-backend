@@ -3,13 +3,19 @@ import { CreateBookCategoryDto } from './dto/create-book-category.dto';
 import { UpdateBookCategoryDto } from './dto/update-book-category.dto';
 import { PrismaService } from '../prisma.service';
 import { v4 } from 'uuid';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { createInclude } from '../common/utils/include.utils';
+import { ResponseService } from '../common/services/response.service';
 
 @Injectable()
 export class BookCategoryService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private responseService: ResponseService,
+    private readonly prismaService: PrismaService,
+  ) {}
 
   create(createBookCategoryDto: CreateBookCategoryDto) {
-    return this.prismaService.bookCategory.create({
+    return this.prismaService.bookCollection.create({
       data: {
         id: v4(),
         ...createBookCategoryDto,
@@ -17,16 +23,40 @@ export class BookCategoryService {
     });
   }
 
-  findAll() {
-    return this.prismaService.bookCategory.findMany({
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+  async findAll(paginationQuery: PaginationQueryDto) {
+    const {
+      page = 1,
+      limit = 10,
+      isDeleted,
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+      include = '',
+    } = paginationQuery;
+
+    const skip = (page - 1) * limit;
+    const [collections, total] = await Promise.all([
+      this.prismaService.bookCollection.findMany({
+        where: {
+          isDeleted: isDeleted ? undefined : false,
+        },
+        orderBy: {
+          [sortBy]: sortOrder,
+        },
+        include: createInclude(include),
+        skip: skip,
+        take: +limit,
+      }),
+
+      this.prismaService.bookCollection.count({
+        where: { isDeleted: isDeleted ? undefined : false },
+      }),
+    ]);
+
+    return this.responseService.paginated(collections, total, page, limit);
   }
 
   async findOne(id: string) {
-    const category = await this.prismaService.bookCategory.findUnique({
+    const category = await this.prismaService.bookCollection.findUnique({
       where: { id },
     });
     if (!category) {
@@ -38,7 +68,7 @@ export class BookCategoryService {
   }
 
   update(id: string, updateBookCategoryDto: UpdateBookCategoryDto) {
-    return this.prismaService.bookCategory.update({
+    return this.prismaService.bookCollection.update({
       where: {
         id,
       },

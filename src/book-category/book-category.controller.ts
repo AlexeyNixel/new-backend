@@ -7,13 +7,15 @@ import {
   Param,
   Delete,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { BookCategoryService } from './book-category.service';
 import { CreateBookCategoryDto } from './dto/create-book-category.dto';
 import { UpdateBookCategoryDto } from './dto/update-book-category.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
-@Controller('book-category')
+@Controller('book-collection')
 export class BookCategoryController {
   constructor(private readonly bookCategoryService: BookCategoryService) {}
 
@@ -24,8 +26,8 @@ export class BookCategoryController {
   }
 
   @Get()
-  findAll() {
-    return this.bookCategoryService.findAll();
+  findAll(@Query() paginationQuery: PaginationQueryDto) {
+    return this.bookCategoryService.findAll(paginationQuery);
   }
 
   @Get(':id')

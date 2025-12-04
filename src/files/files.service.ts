@@ -34,6 +34,8 @@ export class FilesService {
   ) {
     const { quality = 80, maxWidth = 1920 } = options;
 
+    const decodedOriginalName = this.decodeFileName(file.originalname);
+
     this.imageProcessing.validateImage(file);
 
     try {
@@ -47,10 +49,13 @@ export class FilesService {
         return existingFile;
       }
 
-      const processedImage = await this.imageProcessing.processImage(file, {
-        quality,
-        maxWidth,
-      });
+      const processedImage = await this.imageProcessing.processImage(
+        { ...file, originalname: decodedOriginalName },
+        {
+          quality,
+          maxWidth,
+        },
+      );
 
       const uploadResult = await this.minioService.uploadFile(
         processedImage.buffer,
@@ -65,7 +70,13 @@ export class FilesService {
         height: processedImage.height,
       };
 
-      return await this.saveFileToDatabase(file, resultWithDimensions);
+      return await this.saveFileToDatabase(
+        {
+          ...file,
+          originalname: decodedOriginalName,
+        },
+        resultWithDimensions,
+      );
     } catch (error) {
       throw new BadRequestException(`File upload failed: ${error.message}`);
     }
@@ -121,5 +132,16 @@ export class FilesService {
       }
     }
     return counter;
+  }
+
+  private decodeFileName(filename: string) {
+    const decoded = Buffer.from(filename, 'latin1').toString('utf8');
+    const hasGarbage = /Ð|Ñ||/.test(filename);
+
+    if (hasGarbage && decoded !== filename) {
+      return decoded;
+    } else {
+      return filename;
+    }
   }
 }
