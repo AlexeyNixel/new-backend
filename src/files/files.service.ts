@@ -1,10 +1,16 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { ImageProcessingService } from '../common/services/image-processing.service';
 import { MinioService } from '../common/services/minio.service';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { OldFile } from './dto/old-file.dto';
+import * as crypto from 'crypto';
+import { ConfigService } from '@nestjs/config';
+import { join } from 'node:path';
+import sha256 from 'sha256';
+import { Worker } from 'worker_threads';
+import { rm } from 'node:fs/promises';
 
 export interface UploadImageResult {
   url: string;
@@ -15,6 +21,22 @@ export interface UploadImageResult {
   etag: string;
 }
 
+export interface UploadZipResult {
+  totalFiles: number;
+  uploadedFiles: number;
+  skippedFiles: number;
+  failedFiles: number;
+  results: Array<{
+    originalPath: string;
+    minioKey: string;
+    url: string;
+    size: number;
+    success: boolean;
+    skipped?: boolean;
+    error?: string;
+  }>;
+}
+
 @Injectable()
 export class FilesService {
   constructor(
@@ -23,6 +45,7 @@ export class FilesService {
     private prismaService: PrismaService,
     private imageProcessing: ImageProcessingService,
     private minioService: MinioService,
+    private configServices: ConfigService,
   ) {}
 
   async uploadImage(
@@ -78,7 +101,7 @@ export class FilesService {
         resultWithDimensions,
       );
     } catch (error) {
-      throw new BadRequestException(`File upload failed: ${error.message}`);
+      console.log(error);
     }
   }
 
@@ -100,39 +123,75 @@ export class FilesService {
     });
   }
 
-  private generateHash(buffer: Buffer): string {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-    return require('crypto').createHash('md5').update(buffer).digest('hex');
-  }
-
-  async migrateTag() {
-    const oldTags: OldFile[] = await this.sourceDB.query('SELECT * FROM File');
-    const counter = {
-      success: 0,
-      error: 0,
-    };
-
-    for (const tag of oldTags) {
-      try {
-        await this.prismaService.file.create({
+  async uploadExhibition(file: Express.Multer.File) {
+    const threadFile = join(__dirname, '..', 'threads', 'uploadExhibitions.js');
+    const tempPath = join(__dirname, '/../upload/temp');
+    return new Promise((resolve, reject) => {
+      const worker = new Worker(threadFile, {
+        workerData: { bucketName: 'dev', file },
+      });
+      worker.on('message', async (data) => {
+        const newFile = await this.prismaService.file.create({
           data: {
-            id: tag.id,
-            originalName: tag.originalName,
-            hash: undefined,
-            type: tag.type,
-            path: tag.path,
-            mimeType: tag.mimeType,
+            id: data.id,
+            originalName: file.originalname,
+            mimeType: 'text/html',
+            type: 'EXHIBITION',
+            path: `/dev/exhibition/${data.id}/${data.fileName}/index.html`,
+            createdAt: new Date(),
             size: 1,
-            createdAt: tag.createdAt,
+            width: 1,
+            height: 1,
           },
         });
-        counter.success += 1;
-      } catch {
-        counter.error += 1;
-      }
-    }
-    return counter;
+
+        await rm(data.randomExactPath, {
+          recursive: true,
+          force: true,
+        });
+
+        resolve(newFile);
+      });
+      worker.on('error', reject);
+      worker.on('exit', (code) => {
+        if (code !== 0)
+          reject(new Error(`Worker stopped with exit code ${code}`));
+      });
+    });
   }
+
+  private generateHash(buffer: Buffer): string {
+    return crypto.createHash('md5').update(buffer).digest('hex');
+  }
+
+  // async migrateTag() {
+  //   const oldTags: OldFile[] = await this.sourceDB.query('SELECT * FROM File');
+  //   const counter = {
+  //     success: 0,
+  //     error: 0,
+  //   };
+  //
+  //   for (const tag of oldTags) {
+  //     try {
+  //       await this.prismaService.file.create({
+  //         data: {
+  //           id: tag.id,
+  //           originalName: tag.originalName,
+  //           hash: undefined,
+  //           type: tag.type,
+  //           path: tag.path,
+  //           mimeType: tag.mimeType,
+  //           size: 1,
+  //           createdAt: tag.createdAt,
+  //         },
+  //       });
+  //       counter.success += 1;
+  //     } catch {
+  //       counter.error += 1;
+  //     }
+  //   }
+  //   return counter;
+  // }
 
   private decodeFileName(filename: string) {
     const decoded = Buffer.from(filename, 'latin1').toString('utf8');

@@ -1,7 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import * as Minio from 'minio';
 import { ConfigService } from '@nestjs/config';
-import { v4 } from 'uuid';
 
 @Injectable()
 export class MinioService {
@@ -48,13 +47,13 @@ export class MinioService {
 
   private generateFilePath(originalName: string) {
     const now = new Date();
-
     const year = now.getFullYear();
     const month = now.getMonth() + 1;
     const day = now.getDate();
-
     const fileExtension = originalName.split('.').pop() || 'webp';
-    const fileName = `${v4()}.${fileExtension}`;
+
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    const fileName = `${uniqueSuffix}.${fileExtension}`;
 
     return `images/${year}/${month}/${day}/${fileName}`;
   }
@@ -88,7 +87,7 @@ export class MinioService {
         etag: result.etag,
       };
     } catch (e) {
-      throw new BadRequestException('Не удалось загрузить файл');
+      throw new BadRequestException(`Не удалось загрузить файл: ${e.message}`);
     }
   }
 }
