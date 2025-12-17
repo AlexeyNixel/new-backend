@@ -44,6 +44,7 @@ export class MainSliderService {
         orderBy: { [sortBy]: sortOrder },
         include: {
           image: true,
+          post: true,
         },
       }),
 
@@ -81,10 +82,20 @@ export class MainSliderService {
     const slides = await this.sourceDB.query('SELECT * FROM MainSlider');
     try {
       for (const slide of slides) {
+        const copy = await this.prismaService.mainSliderSlide.findUnique({
+          where: {
+            id: slide.id,
+          },
+        });
+
+        if (copy) {
+          break;
+        }
+
         await this.prismaService.mainSliderSlide.create({
           data: {
             id: slide.id,
-            imageFileId: slide.fileId,
+            imageFileId: slide.fileId || '123ec8e5-650c-47b6-a898-203b40987a29',
             createdAt: slide.createdAt,
             url: slide.url,
             postId: slide.entryId,

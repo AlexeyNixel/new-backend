@@ -138,6 +138,7 @@ model Notification {
   startTime   DateTime  @default(now())
   endTime     DateTime?
   post        Post?     @relation(fields: [postId], references: [id])
+  isDeleted   Boolean   @default(false)
 
   @@index([postId])
   @@map("notifications")
@@ -190,7 +191,7 @@ model BookOnCollection {
 model NavigationItem {
   id          String   @id @default(uuid())
   title       String   @db.VarChar(100)
-  url         String?  @db.VarChar(500)
+  to          String?  @db.VarChar(500)
   slug        String   @unique @db.VarChar(100)
   description String?  @db.VarChar(200)
   icon        String?  @db.VarChar(50)
@@ -207,6 +208,16 @@ model NavigationItem {
   @@index([parentId])
   @@index([order])
   @@map("navigation_items")
+}
+
+model Page {
+  id            String            @id @default(uuid())
+  title         String            @db.VarChar(200)
+  content       String?           @db.LongText
+  isDeleted     Boolean           @default(false)
+  slug          String?            @unique @db.VarChar(200)
+
+  @@map("pages")
 }
 
 enum FileType {

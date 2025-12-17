@@ -33,19 +33,32 @@ export class EventService {
       isDeleted,
       sortBy = 'eventTime',
       sortOrder = 'desc',
+      startDate,
+      endDate,
     } = paginationQuery;
 
     const skip = (page - 1) * limit;
-
     const [events, total] = await Promise.all([
       this.prismaService.event.findMany({
-        where: { isDeleted: isDeleted ? undefined : false },
+        where: {
+          isDeleted: isDeleted ? undefined : false,
+          eventTime: {
+            gte: startDate,
+            lte: endDate,
+          },
+        },
         skip,
         take: +limit,
         orderBy: { [sortBy]: sortOrder },
       }),
       this.prismaService.event.count({
-        where: { isDeleted: isDeleted ? undefined : false },
+        where: {
+          isDeleted: isDeleted ? undefined : false,
+          eventTime: {
+            gte: startDate,
+            lte: endDate,
+          },
+        },
       }),
     ]);
 

@@ -81,12 +81,14 @@ export class BookService {
     return this.responseService.paginated(books, total, page, limit);
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, paginationQuery: PaginationQueryDto) {
+    const { include = '' } = paginationQuery;
     const book = await this.prismaService.book.findUnique({
       where: {
         ...parseSlug(id),
       },
       include: {
+        ...createInclude(include),
         collections: {
           select: {
             collections: {
@@ -162,22 +164,21 @@ export class BookService {
   }
 
   async migrate() {
-    // const books = await this.sourceDB.query('SELECT * FROM Book');
-    //
-    // for (const book of books) {
-    //   try {
-    //     await this.prismaService.book.update({
-    //       where: {
-    //         id: book.id,
-    //       },
-    //       //@ts-ignore
-    //       data: {
-    //         previewFileId: book.fileId,
-    //       },
-    //     });
-    //   } catch (e) {
-    //     console.log(e);
-    //   }
-    // }
+    const books = await this.sourceDB.query('SELECT * FROM Book');
+
+    for (const book of books) {
+      try {
+        await this.prismaService.book.update({
+          where: {
+            id: book.id,
+          },
+          data: {
+            previewFileId: book.fileId,
+          },
+        });
+      } catch (e) {
+        console.log(e);
+      }
+    }
   }
 }

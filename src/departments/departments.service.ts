@@ -7,12 +7,17 @@ import { parseSlug } from '../common/utils/validate.utils';
 import { ResponseService } from '../common/services/response.service';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { DateTime } from 'luxon';
+import { DataSource } from 'typeorm';
+import { InjectDataSource } from '@nestjs/typeorm';
 
 @Injectable()
 export class DepartmentsService {
   constructor(
     private prismaService: PrismaService,
     private responseService: ResponseService,
+
+    @InjectDataSource('sourceDB')
+    private readonly sourceDB: DataSource,
   ) {}
 
   async create(createDepartmentDto: CreateDepartmentDto) {
@@ -105,5 +110,22 @@ export class DepartmentsService {
         ...updateDepartmentDto,
       },
     });
+  }
+
+  async migrate() {
+    const departments = await this.sourceDB.query('Select * from Department');
+
+    for (const department of departments) {
+      await this.prismaService.department.create({
+        data: {
+          id: department.id,
+          title: department.title,
+          slug: department.slug,
+          createdAt: department.createdAt,
+          isDeleted: !!department.isDeleted,
+          previewFileId: department.fileId,
+        },
+      });
+    }
   }
 }

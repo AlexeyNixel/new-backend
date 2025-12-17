@@ -206,32 +206,58 @@ export class PostsService {
   async migratePosts() {
     const oldPost: OldPost[] = await this.sourceDB.query('SELECT * FROM Entry');
     //@ts-ignore
-    const errors: oldPost[] = [];
+    const errorsCount = 0;
 
     for (const post of oldPost) {
       try {
-        await this.prismaService.post.create({
-          data: {
-            id: post.id,
-            title: post.title,
-            description: post.desc,
-            content: post.content,
-            previewFileId: post.fileId,
-            createdAt: post.createdAt,
-            slug: post.slug,
-            isPublished: true,
-            isDeleted: !!post.isDeleted,
-            departmentId: post.departmentId,
-            isPinned: !!post.pinned,
-          },
-        });
+        if (
+          post.fileId &&
+          (await this.prismaService.file.findUnique({
+            where: {
+              id: post.fileId,
+            },
+          }))
+        ) {
+          await this.prismaService.post.create({
+            data: {
+              id: post.id,
+              title: post.title,
+              description: post.desc,
+              content: post.content,
+              previewFileId: post?.fileId,
+              slug: post.slug,
+              isPublished: true,
+              isDeleted: !!post.isDeleted,
+              departmentId: post.departmentId,
+              isPinned: !!post.pinned,
+              publishedAt: post.publishedAt,
+              createdAt: post.createdAt,
+            },
+          });
+        } else {
+          await this.prismaService.post.create({
+            data: {
+              id: post.id,
+              title: post.title,
+              description: post.desc,
+              content: post.content,
+              previewFileId: '123ec8e5-650c-47b6-a898-203b40987a29',
+              slug: post.slug,
+              isPublished: true,
+              isDeleted: !!post.isDeleted,
+              departmentId: post.departmentId,
+              isPinned: !!post.pinned,
+              publishedAt: post.publishedAt,
+              createdAt: post.createdAt,
+            },
+          });
+        }
       } catch (e) {
         throw new Error(e);
-        errors.push(post);
       }
     }
-
-    return errors;
+    // console.log();
+    return 'Постов пропущенно ' + errorsCount;
   }
 
   async migratePostOnRubric() {

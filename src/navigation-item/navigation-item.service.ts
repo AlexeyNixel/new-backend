@@ -45,6 +45,7 @@ export class NavigationItemService {
         order: true,
         isExternal: true,
         target: true,
+        to: true,
         parentId: true,
       },
     });
@@ -64,12 +65,39 @@ export class NavigationItemService {
     });
   }
 
+  findAllWithoutTree() {
+    return this.prismaService.navigationItem.findMany();
+  }
+
   findOne(id: number) {
     return `This action returns a #${id} navigationItem`;
   }
 
-  update(id: number, updateNavigationItemDto: UpdateNavigationItemDto) {
-    return `This action updates a #${id} navigationItem`;
+  update(id: string, updateNavigationItemDto: UpdateNavigationItemDto) {
+    return this.prismaService.navigationItem.update({
+      where: {
+        id: id,
+      },
+      data: {
+        ...updateNavigationItemDto,
+      },
+    });
+  }
+
+  async updateTo() {
+    const items = await this.prismaService.navigationItem.findMany();
+
+    for (const item of items) {
+      if (!item.to || item.to.length <= 1) {
+        await this.prismaService.navigationItem.update({
+          where: { id: item.id },
+          data: {
+            to: '/page/' + item.slug,
+          },
+        });
+      }
+    }
+    return 'success';
   }
 
   remove(id: number) {

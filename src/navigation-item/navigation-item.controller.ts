@@ -29,6 +29,16 @@ export class NavigationItemController {
     return this.navigationItemService.updateOrderBatch(batchUpdateDto.data);
   }
 
+  @Get('updateTo')
+  updateTo() {
+    return this.navigationItemService.updateTo();
+  }
+
+  @Get('/untree')
+  findAllWithoutTree() {
+    return this.navigationItemService.findAllWithoutTree();
+  }
+
   @Get()
   findAll() {
     return this.navigationItemService.findAll();
@@ -45,6 +55,6 @@ export class NavigationItemController {
     @Param('id') id: string,
     @Body() updateNavigationItemDto: UpdateNavigationItemDto,
   ) {
-    return this.navigationItemService.update(+id, updateNavigationItemDto);
+    return this.navigationItemService.update(id, updateNavigationItemDto);
   }
 }

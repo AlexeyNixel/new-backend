@@ -6,4 +6,6 @@ export class PaginationQueryDto {
   sortOrder?: 'asc' | 'desc' = 'desc';
   search?: string;
   include?: string;
+  startDate: string;
+  endDate: string;
 }

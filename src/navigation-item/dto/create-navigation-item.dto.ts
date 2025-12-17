@@ -1,6 +1,6 @@
 export class CreateNavigationItemDto {
   title: string;
-  url?: string;
+  to?: string;
   slug: string;
   description?: string;
   icon?: string;

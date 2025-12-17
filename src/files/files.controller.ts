@@ -18,10 +18,10 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 export class FilesController {
   constructor(private readonly filesService: FilesService) {}
 
-  // @Get('migrate')
-  // async migrate() {
-  //   return this.filesService.migrateTag();
-  // }
+  @Get('migrate')
+  async migrate() {
+    return this.filesService.migrate();
+  }
 
   @UseGuards(JwtAuthGuard)
   @Post('upload/image')
@@ -45,6 +45,14 @@ export class FilesController {
       maxWidth,
     });
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('upload/document')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadDocument(@UploadedFile() file: Express.Multer.File) {
+    return this.filesService.uploadDocument(file);
+  }
+
   @Post('upload/exhibition')
   @UseInterceptors(FileInterceptor('file'))
   async uploadZip(@UploadedFile() file: Express.Multer.File) {

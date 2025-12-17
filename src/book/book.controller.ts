@@ -36,8 +36,11 @@ export class BookController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.bookService.findOne(id);
+  findOne(
+    @Param('id') id: string,
+    @Query() paginationQuery: PaginationQueryDto,
+  ) {
+    return this.bookService.findOne(id, paginationQuery);
   }
 
   @UseGuards(JwtAuthGuard)

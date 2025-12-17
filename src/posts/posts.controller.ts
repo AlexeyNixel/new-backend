@@ -20,7 +20,7 @@ export class PostsController {
 
   @Get('migrate')
   migrate() {
-    return this.postsService.migratePosts();
+    return this.postsService.migratePostOnRubric();
   }
 
   @UseGuards(JwtAuthGuard)

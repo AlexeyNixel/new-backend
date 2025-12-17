@@ -3,6 +3,7 @@ export interface OldPost {
   fileId: string;
   createdAt: string;
   updatedAt: string;
+  publishedAt: string;
   title: string;
   desc: string;
   content: string;

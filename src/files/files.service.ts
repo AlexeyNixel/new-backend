@@ -4,13 +4,9 @@ import { ImageProcessingService } from '../common/services/image-processing.serv
 import { MinioService } from '../common/services/minio.service';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
-import { OldFile } from './dto/old-file.dto';
 import * as crypto from 'crypto';
 import { ConfigService } from '@nestjs/config';
-import { join } from 'node:path';
-import sha256 from 'sha256';
-import { Worker } from 'worker_threads';
-import { rm } from 'node:fs/promises';
+import { v4 } from 'uuid';
 
 export interface UploadImageResult {
   url: string;
@@ -56,7 +52,6 @@ export class FilesService {
     } = {},
   ) {
     const { quality = 80, maxWidth = 1920 } = options;
-
     const decodedOriginalName = this.decodeFileName(file.originalname);
 
     this.imageProcessing.validateImage(file);
@@ -105,16 +100,81 @@ export class FilesService {
     }
   }
 
+  async uploadExhibition(file: Express.Multer.File) {
+    const id = v4();
+    const fileName = file.originalname.split('.')[0];
+    const baseMinioPath = `/exhibitions/${fileName}`;
+
+    try {
+      const result = await this.minioService.uploadExhibition(
+        file.buffer,
+        baseMinioPath,
+      );
+
+      if (result && result.mainHtmlPath) {
+        return await this.prismaService.file.create({
+          data: {
+            id: id,
+            originalName: file.originalname,
+            mimeType: 'text/html',
+            path: result.mainHtmlPath,
+            type: 'EXHIBITION',
+            size: file.size,
+            width: 0,
+            height: 0,
+          },
+        });
+      }
+    } catch (error) {
+      throw new Error(error);
+    }
+  }
+
+  async uploadDocument(file: Express.Multer.File) {
+    const hash = this.generateHash(file.buffer);
+
+    const findCopy = await this.prismaService.file.findUnique({
+      where: {
+        hash: hash,
+      },
+    });
+
+    if (findCopy) {
+      return findCopy;
+    }
+
+    const result = await this.minioService.uploadFile(
+      file.buffer,
+      file.originalname,
+      file.mimetype,
+      'documents',
+    );
+
+    const decodeName = this.decodeFileName(file.originalname);
+
+    const resultWithDimensions = {
+      ...result,
+      url: result.url.split('10001')[1],
+    };
+
+    return this.saveFileToDatabase(
+      { ...file, originalname: decodeName },
+      resultWithDimensions,
+      'DOCUMENT',
+    );
+  }
+
   private saveFileToDatabase(
     originalFile: Express.Multer.File,
     result: UploadImageResult,
+    type: 'IMAGE' | 'DOCUMENT' = 'IMAGE',
   ) {
     return this.prismaService.file.create({
       data: {
         originalName: originalFile.originalname,
         mimeType: 'image/webp',
         hash: this.generateHash(originalFile.buffer),
-        type: 'IMAGE',
+        type: type,
         path: result.url,
         size: result.size,
         width: result.width,
@@ -123,75 +183,9 @@ export class FilesService {
     });
   }
 
-  async uploadExhibition(file: Express.Multer.File) {
-    const threadFile = join(__dirname, '..', 'threads', 'uploadExhibitions.js');
-    const tempPath = join(__dirname, '/../upload/temp');
-    return new Promise((resolve, reject) => {
-      const worker = new Worker(threadFile, {
-        workerData: { bucketName: 'dev', file },
-      });
-      worker.on('message', async (data) => {
-        const newFile = await this.prismaService.file.create({
-          data: {
-            id: data.id,
-            originalName: file.originalname,
-            mimeType: 'text/html',
-            type: 'EXHIBITION',
-            path: `/dev/exhibition/${data.id}/${data.fileName}/index.html`,
-            createdAt: new Date(),
-            size: 1,
-            width: 1,
-            height: 1,
-          },
-        });
-
-        await rm(data.randomExactPath, {
-          recursive: true,
-          force: true,
-        });
-
-        resolve(newFile);
-      });
-      worker.on('error', reject);
-      worker.on('exit', (code) => {
-        if (code !== 0)
-          reject(new Error(`Worker stopped with exit code ${code}`));
-      });
-    });
-  }
-
   private generateHash(buffer: Buffer): string {
     return crypto.createHash('md5').update(buffer).digest('hex');
   }
-
-  // async migrateTag() {
-  //   const oldTags: OldFile[] = await this.sourceDB.query('SELECT * FROM File');
-  //   const counter = {
-  //     success: 0,
-  //     error: 0,
-  //   };
-  //
-  //   for (const tag of oldTags) {
-  //     try {
-  //       await this.prismaService.file.create({
-  //         data: {
-  //           id: tag.id,
-  //           originalName: tag.originalName,
-  //           hash: undefined,
-  //           type: tag.type,
-  //           path: tag.path,
-  //           mimeType: tag.mimeType,
-  //           size: 1,
-  //           createdAt: tag.createdAt,
-  //         },
-  //       });
-  //       counter.success += 1;
-  //     } catch {
-  //       counter.error += 1;
-  //     }
-  //   }
-  //   return counter;
-  // }
 
   private decodeFileName(filename: string) {
     const decoded = Buffer.from(filename, 'latin1').toString('utf8');
@@ -201,6 +195,27 @@ export class FilesService {
       return decoded;
     } else {
       return filename;
+    }
+  }
+
+  async migrate() {
+    const oldFiles = await this.sourceDB.query('SELECT * from File');
+
+    for (const file of oldFiles) {
+      await this.prismaService.file.create({
+        data: {
+          id: file.id,
+          originalName: file.originalName,
+          mimeType: file.mimeType,
+          hash: file.hash,
+          type: file.type,
+          path: file.path,
+          createdAt: file.createdAt,
+          size: 0,
+          height: 0,
+          width: 0,
+        },
+      });
     }
   }
 }

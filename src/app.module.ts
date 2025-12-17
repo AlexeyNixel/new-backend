@@ -17,6 +17,8 @@ import { EventModule } from './event/event.module';
 import { PrismaModule } from './prisma.module';
 import { BookModule } from './book/book.module';
 import { BookCategoryModule } from './book-category/book-category.module';
+import { NotificationModule } from './notification/notification.module';
+import { PageModule } from './page/page.module';
 
 @Module({
   imports: [
@@ -67,6 +69,8 @@ import { BookCategoryModule } from './book-category/book-category.module';
     EventModule,
     BookModule,
     BookCategoryModule,
+    NotificationModule,
+    PageModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],
