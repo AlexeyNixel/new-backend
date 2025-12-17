@@ -6,19 +6,16 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { PageService } from './page.service';
 import { CreatePageDto } from './dto/create-page.dto';
 import { UpdatePageDto } from './dto/update-page.dto';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
 @Controller('page')
 export class PageController {
   constructor(private readonly pageService: PageService) {}
-
-  @Get('updateTo')
-  updateTo() {
-    return this.pageService.updateTo();
-  }
 
   @Post()
   create(@Body() createPageDto: CreatePageDto) {
@@ -26,8 +23,8 @@ export class PageController {
   }
 
   @Get()
-  findAll() {
-    return this.pageService.findAll();
+  findAll(@Query() paginationQuery: PaginationQueryDto) {
+    return this.pageService.findAll(paginationQuery);
   }
 
   @Get(':id')

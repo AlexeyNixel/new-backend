@@ -1,5 +1,6 @@
 export class CreatePageDto {
   title: string;
-  description: string;
+  content: string;
   isDeleted: boolean;
+  slug?: string;
 }

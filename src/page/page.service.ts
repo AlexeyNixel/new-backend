@@ -2,20 +2,57 @@ import { Injectable } from '@nestjs/common';
 import { CreatePageDto } from './dto/create-page.dto';
 import { UpdatePageDto } from './dto/update-page.dto';
 import { PrismaService } from '../prisma.service';
-import { InjectDataSource } from '@nestjs/typeorm';
-import { DataSource } from 'typeorm';
 import { createSlug } from '../common/utils/slugify.utils';
+import { v4 } from 'uuid';
+import { ResponseService } from '../common/services/response.service';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
 @Injectable()
 export class PageService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private responseService: ResponseService,
+  ) {}
 
   create(createPageDto: CreatePageDto) {
-    return 'This action adds a new page';
+    if (!createPageDto.slug) {
+      createPageDto.slug = createSlug(createPageDto.title);
+    }
+    return this.prismaService.page.create({
+      data: {
+        id: v4(),
+        ...createPageDto,
+      },
+    });
   }
 
-  findAll() {
-    return `This action returns all page`;
+  async findAll(paginationQuery: PaginationQueryDto) {
+    const {
+      page = 1,
+      limit = 10,
+      isDeleted,
+      sortBy = 'title',
+      sortOrder = 'asc',
+    } = paginationQuery;
+
+    const skip = (page - 1) * limit;
+
+    const [pages, total] = await Promise.all([
+      this.prismaService.page.findMany({
+        where: { isDeleted: isDeleted ? undefined : false },
+        skip,
+        orderBy: {
+          [sortBy]: sortOrder,
+        },
+        take: +limit,
+      }),
+
+      this.prismaService.page.count({
+        where: { isDeleted: isDeleted ? undefined : false },
+      }),
+    ]);
+
+    return this.responseService.paginated(pages, total, page, limit);
   }
 
   async findOne(id: string) {
@@ -32,7 +69,14 @@ export class PageService {
   }
 
   update(id: string, updatePageDto: UpdatePageDto) {
-    return `This action updates a #${id} page`;
+    return this.prismaService.page.update({
+      where: {
+        id: id,
+      },
+      data: {
+        ...updatePageDto,
+      },
+    });
   }
 
   async updateTo() {

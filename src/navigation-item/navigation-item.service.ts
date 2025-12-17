@@ -24,6 +24,10 @@ export class NavigationItemService {
       createNavigationItemDto.slug,
     );
 
+    if (!createNavigationItemDto?.to) {
+      createNavigationItemDto.to = '/page/' + createNavigationItemDto.slug;
+    }
+
     return this.prismaService.navigationItem.create({
       data: {
         ...createNavigationItemDto,
