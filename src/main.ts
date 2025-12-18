@@ -5,7 +5,7 @@ import cookieParser from 'cookie-parser';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  app.setGlobalPrefix('api');
+  app.setGlobalPrefix('nomb-api');
   app.use(cookieParser());
   app.enableCors({
     origin: [
@@ -13,6 +13,7 @@ async function bootstrap() {
       'http://127.0.0.1:3000',
       'http://localhost:3001',
       'http://localhost:3333',
+      'http://192.168.0.243:3000',
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: [

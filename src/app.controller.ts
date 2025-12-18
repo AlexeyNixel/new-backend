@@ -9,8 +9,6 @@ export class AppController {
   constructor(
     @InjectDataSource('sourceDB')
     private readonly sourceDB: DataSource,
-    @InjectDataSource('targetDB')
-    private readonly targetDB: DataSource,
 
     private prisma: PrismaService,
     private readonly appService: AppService,
