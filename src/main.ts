@@ -8,13 +8,7 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
   app.use(cookieParser());
   app.enableCors({
-    origin: [
-      'http://localhost:3000',
-      'http://127.0.0.1:3000',
-      'http://localhost:3001',
-      'http://localhost:3333',
-      'http://192.168.0.243:3000',
-    ],
+    origin: ['http://192.168.0.243:3000', 'http://alt.infomania.ru'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: [
       'Origin',
@@ -23,8 +17,10 @@ async function bootstrap() {
       'Accept',
       'Authorization',
       'X-API-Key',
+      'X-API-Key',
+      'Access-Control-Allow-Methods',
     ],
-    credentials: true, // 🔑 Важно: разрешаем credentials
+    credentials: true,
     preflightContinue: false,
     optionsSuccessStatus: 204,
   });
