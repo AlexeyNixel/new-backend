@@ -85,6 +85,7 @@ export class PostsService {
     const include = createInclude(includeQuery);
 
     const whereParams = {
+      departmentId: paginationQuery.department,
       isDeleted: isDeleted ? undefined : false,
       OR: [
         {
@@ -96,7 +97,9 @@ export class PostsService {
 
     const [posts, total] = await Promise.all([
       this.prismaService.post.findMany({
-        where: { ...whereParams },
+        where: {
+          ...whereParams,
+        },
         orderBy: {
           [sortBy]: sortOrder,
         },
