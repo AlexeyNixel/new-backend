@@ -44,8 +44,8 @@ export class AuthService {
     // Устанавливаем куку
     response.cookie('access_token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'none',
+      secure: false,
+      sameSite: 'lax',
       domain: '.infomania.ru',
       maxAge: 24 * 60 * 60 * 1000,
       path: '/',
