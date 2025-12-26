@@ -42,7 +42,7 @@ export class AuthService {
     const token = this.jwtService.sign(payload);
 
     // Устанавливаем куку
-    response.cookie('auth_token', token, {
+    response.cookie('access_token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'none',
