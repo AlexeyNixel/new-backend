@@ -1,6 +1,7 @@
 generator client {
-  provider = "prisma-client-js"
-  output   = "../generated/prisma"
+  provider        = "prisma-client-js"
+  output          = "../generated/prisma"
+  previewFeatures = ["views"]
 }
 
 datasource db {
@@ -21,9 +22,9 @@ model User {
 model Post {
   id            String            @id @default(uuid())
   previewFileId String?
-  createdAt     DateTime          @default(now()) @db.DateTime(3)
-  updatedAt     DateTime          @updatedAt @db.DateTime(3)
-  publishedAt   DateTime          @default(now()) @db.DateTime(3)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  publishedAt   DateTime          @default(now())
   title         String            @db.VarChar(200)
   description   String?           @db.LongText
   content       String?           @db.LongText
@@ -32,11 +33,11 @@ model Post {
   isDeleted     Boolean           @default(false)
   departmentId  String?
   isPinned      Boolean           @default(false)
-  department    Department?       @relation(fields: [departmentId], references: [id], onDelete: Cascade)
-  preview       File?             @relation(fields: [previewFileId], references: [id], name: "PostPreviewFile")
-  tags          TagsOnPosts[]
   Slide         MainSliderSlide[]
   Notification  Notification[]
+  department    Department?       @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  preview       File?             @relation("PostPreviewFile", fields: [previewFileId], references: [id])
+  tags          TagsOnPosts[]
 
   @@index([departmentId])
   @@index([previewFileId])
@@ -48,11 +49,11 @@ model Department {
   title         String   @db.VarChar(200)
   slug          String   @unique @db.VarChar(250)
   isDeleted     Boolean  @default(false)
-  preview       File?    @relation(fields: [previewFileId], references: [id], name: "DepartmentPreviewFile")
   createdAt     DateTime @default(now()) @db.DateTime(0)
   updatedAt     DateTime @updatedAt
-  posts         Post[]
   previewFileId String?
+  preview       File?    @relation("DepartmentPreviewFile", fields: [previewFileId], references: [id])
+  posts         Post[]
 
   @@index([previewFileId])
   @@map("departments")
@@ -62,7 +63,7 @@ model Tag {
   id        String        @id @default(uuid())
   title     String        @db.VarChar(200)
   slug      String        @unique @db.VarChar(250)
-  createdAt DateTime      @default(now()) @db.DateTime(3)
+  createdAt DateTime      @default(now())
   posts     TagsOnPosts[]
 
   @@map("tags")
@@ -71,11 +72,12 @@ model Tag {
 model TagsOnPosts {
   postId     String
   tagId      String
+  assignedAt DateTime @default(now())
   post       Post     @relation(fields: [postId], references: [id])
   tag        Tag      @relation(fields: [tagId], references: [id])
-  assignedAt DateTime @default(now())
 
   @@id([postId, tagId])
+  @@index([tagId], map: "tags_on_posts_tagId_fkey")
   @@map("tags_on_posts")
 }
 
@@ -90,11 +92,11 @@ model File {
   width          Int?
   height         Int?
   createdAt      DateTime          @default(now())
-  departments    Department[]      @relation("DepartmentPreviewFile")
-  posts          Post[]            @relation("PostPreviewFile")
-  books          Book[]            @relation("BookPreviewFile")
   BookCollection BookCollection[]  @relation("CollectionPreviewFile")
+  books          Book[]            @relation("BookPreviewFile")
+  departments    Department[]      @relation("DepartmentPreviewFile")
   slide          MainSliderSlide[]
+  posts          Post[]            @relation("PostPreviewFile")
 
   @@map("files")
 }
@@ -106,7 +108,7 @@ model Event {
   phone     String   @db.VarChar(20)
   age       Int?
   place     String
-  eventTime DateTime @db.DateTime(3)
+  eventTime DateTime
   createdAt DateTime @default(now())
   isDeleted Boolean  @default(false)
 
@@ -121,8 +123,8 @@ model MainSliderSlide {
   postId      String?
   imageFileId String?
   url         String?
-  post        Post?    @relation(fields: [postId], references: [id], onDelete: SetNull)
   image       File?    @relation(fields: [imageFileId], references: [id])
+  post        Post?    @relation(fields: [postId], references: [id])
 
   @@index([imageFileId])
   @@index([slideOrder])
@@ -137,8 +139,8 @@ model Notification {
   postId      String?
   startTime   DateTime  @default(now())
   endTime     DateTime?
-  post        Post?     @relation(fields: [postId], references: [id])
   isDeleted   Boolean   @default(false)
+  post        Post?     @relation(fields: [postId], references: [id])
 
   @@index([postId])
   @@map("notifications")
@@ -150,14 +152,14 @@ model Book {
   title         String             @db.VarChar(200)
   description   String             @db.LongText
   content       String             @db.LongText
-  collections   BookOnCollection[]
   previewFileId String?
   isDeleted     Boolean            @default(false)
   isVideo       Boolean            @default(false)
   place         String             @db.VarChar(200)
   litresLink    String?
-  createdAt     DateTime           @default(now()) @db.DateTime(3)
-  preview       File?              @relation(fields: [previewFileId], references: [id], name: "BookPreviewFile")
+  createdAt     DateTime           @default(now())
+  preview       File?              @relation("BookPreviewFile", fields: [previewFileId], references: [id])
+  collections   BookOnCollection[]
 
   @@index([previewFileId])
   @@map("books")
@@ -166,12 +168,11 @@ model Book {
 model BookCollection {
   id            String             @id @default(uuid())
   label         String
-  books         BookOnCollection[]
   isDeleted     Boolean            @default(false)
   previewFileId String?
-  createdAt     DateTime           @default(now()) @db.DateTime(3)
-
-  preview File? @relation(fields: [previewFileId], references: [id], name: "CollectionPreviewFile")
+  createdAt     DateTime           @default(now())
+  preview       File?              @relation("CollectionPreviewFile", fields: [previewFileId], references: [id])
+  books         BookOnCollection[]
 
   @@index([previewFileId])
   @@map("book_collection")
@@ -180,30 +181,30 @@ model BookCollection {
 model BookOnCollection {
   bookId        String
   collectionsId String
+  assignedAt    DateTime       @default(now())
   book          Book           @relation(fields: [bookId], references: [id])
   collections   BookCollection @relation(fields: [collectionsId], references: [id])
-  assignedAt    DateTime       @default(now())
 
   @@id([bookId, collectionsId])
+  @@index([collectionsId], map: "books_on_collections_collectionsId_fkey")
   @@map("books_on_collections")
 }
 
 model NavigationItem {
-  id          String   @id @default(uuid())
-  title       String   @db.VarChar(100)
-  to          String?  @db.VarChar(500)
-  slug        String   @unique @db.VarChar(100)
-  description String?  @db.VarChar(200)
-  icon        String?  @db.VarChar(50)
-  order       Int      @default(0)
-  isExternal  Boolean  @default(false)
-  target      String   @default("_self")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  parentId String?
-  parent   NavigationItem?  @relation("NavigationChildren", fields: [parentId], references: [id])
-  children NavigationItem[] @relation("NavigationChildren")
+  id          String           @id @default(uuid())
+  title       String           @db.VarChar(100)
+  to          String?          @db.VarChar(500)
+  slug        String           @unique @db.VarChar(100)
+  description String?          @db.VarChar(200)
+  icon        String?          @db.VarChar(50)
+  order       Int              @default(0)
+  isExternal  Boolean          @default(false)
+  target      String           @default("_self")
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  parentId    String?
+  parent      NavigationItem?  @relation("NavigationChildren", fields: [parentId], references: [id])
+  children    NavigationItem[] @relation("NavigationChildren")
 
   @@index([parentId])
   @@index([order])
@@ -211,13 +212,33 @@ model NavigationItem {
 }
 
 model Page {
-  id            String            @id @default(uuid())
-  title         String            @db.VarChar(200)
-  content       String?           @db.LongText
-  isDeleted     Boolean           @default(false)
-  slug          String?            @unique @db.VarChar(200)
+  id        String  @id @default(uuid())
+  title     String  @db.VarChar(200)
+  content   String? @db.LongText
+  isDeleted Boolean @default(false)
+  slug      String? @unique @db.VarChar(200)
 
   @@map("pages")
+}
+
+/// This view or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+view games {
+  id                String  @db.VarChar(20)
+  name              String? @db.VarChar(256)
+  player_min        Int?
+  player_max        Int?
+  player_age        Int?
+  short_description String? @db.VarChar(512)
+  full_description  String? @db.VarChar(4192)
+  cover_file        String? @db.VarChar(32)
+  rules_file        String? @db.VarChar(32)
+  genres            String? @db.VarChar(128)
+  game_duration     String? @db.VarChar(64)
+  game_year         String? @db.VarChar(32)
+  status            Int?    @default(0)
+  place             String? @db.VarChar(512)
+  comment           String? @db.VarChar(1024)
+  status_desc       String  @db.VarChar(64)
 }
 
 enum FileType {

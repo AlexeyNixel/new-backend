@@ -9,4 +9,6 @@ export class PaginationQueryDto {
   startDate: string;
   endDate: string;
   department?: string;
+  genres?: string[];
+  age?: number;
 }

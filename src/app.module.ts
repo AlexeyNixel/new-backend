@@ -19,6 +19,7 @@ import { BookModule } from './book/book.module';
 import { BookCategoryModule } from './book-category/book-category.module';
 import { NotificationModule } from './notification/notification.module';
 import { PageModule } from './page/page.module';
+import { GamesModule } from './games/games.module';
 
 @Module({
   imports: [
@@ -56,6 +57,7 @@ import { PageModule } from './page/page.module';
     BookCategoryModule,
     NotificationModule,
     PageModule,
+    GamesModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],
