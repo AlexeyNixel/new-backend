@@ -11,8 +11,13 @@ export class GamesController {
     return this.gamesService.findAll(paginationQuery);
   }
 
+  @Get('/genres')
+  findAllGenres() {
+    return this.gamesService.findAllGenres();
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.gamesService.findOne(+id);
+    return this.gamesService.findOne(id);
   }
 }

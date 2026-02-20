@@ -49,7 +49,15 @@ export class GamesService {
     }
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} game`;
+  async findAllGenres() {
+    return await this.prismaService.genres.findMany();
+  }
+
+  findOne(id: string) {
+    return this.prismaService.games.findUnique({
+      where: {
+        id: id,
+      },
+    });
   }
 }

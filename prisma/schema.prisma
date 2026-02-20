@@ -223,7 +223,7 @@ model Page {
 
 /// This view or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 view games {
-  id                String  @db.VarChar(20)
+  id                String  @unique @db.VarChar(20)
   name              String? @db.VarChar(256)
   player_min        Int?
   player_max        Int?
@@ -239,6 +239,11 @@ view games {
   place             String? @db.VarChar(512)
   comment           String? @db.VarChar(1024)
   status_desc       String  @db.VarChar(64)
+}
+
+view genres {
+  tag  String  @default("") @db.VarChar(20)
+  desc String? @db.VarChar(32)
 }
 
 enum FileType {
