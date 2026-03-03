@@ -18,6 +18,7 @@ export class GamesService {
       sortOrder = 'asc',
       genres = [],
       age = 0,
+      search = '',
     } = paginationQuery;
 
     const skip = (page - 1) * limit;
@@ -25,6 +26,11 @@ export class GamesService {
     const [games, total] = await Promise.all([
       this.prismaService.games.findMany({
         where: {
+          OR: [
+            {
+              name: { contains: search },
+            },
+          ],
           AND: genres?.map((genre) => ({
             genres: {
               contains: genre,
