@@ -4,4 +4,5 @@ export class CreateNotificationDto {
   startTime: string;
   endTime: string;
   postId: string;
+  type: any;
 }

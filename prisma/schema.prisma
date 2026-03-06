@@ -133,14 +133,15 @@ model MainSliderSlide {
 }
 
 model Notification {
-  id          String    @id @default(uuid())
-  title       String    @db.VarChar(200)
-  description String    @db.VarChar(200)
+  id          String           @id @default(uuid())
+  title       String           @db.VarChar(200)
+  description String           @db.VarChar(200)
+  type        NotificationType
   postId      String?
-  startTime   DateTime  @default(now())
+  startTime   DateTime         @default(now())
   endTime     DateTime?
-  isDeleted   Boolean   @default(false)
-  post        Post?     @relation(fields: [postId], references: [id])
+  isDeleted   Boolean          @default(false)
+  post        Post?            @relation(fields: [postId], references: [id])
 
   @@index([postId])
   @@map("notifications")
@@ -254,4 +255,10 @@ enum FileType {
   ARCHIVE
   OTHER
   EXHIBITION
+}
+
+enum NotificationType {
+  success
+  warning
+  error
 }

@@ -22,6 +22,15 @@ export class GamesService {
     } = paginationQuery;
 
     const skip = (page - 1) * limit;
+    let newGenres: string[] = [];
+
+    if (typeof genres === 'string') {
+      newGenres = [genres];
+    }
+
+    if (typeof genres === 'object') {
+      newGenres.push(...genres);
+    }
 
     const [games, total] = await Promise.all([
       this.prismaService.games.findMany({
@@ -31,7 +40,7 @@ export class GamesService {
               name: { contains: search },
             },
           ],
-          AND: genres?.map((genre) => ({
+          AND: newGenres.map((genre) => ({
             genres: {
               contains: genre,
             },
@@ -47,7 +56,23 @@ export class GamesService {
         take: +limit,
       }),
 
-      this.prismaService.games.count(),
+      this.prismaService.games.count({
+        where: {
+          OR: [
+            {
+              name: { contains: search },
+            },
+          ],
+          AND: newGenres.map((genre) => ({
+            genres: {
+              contains: genre,
+            },
+          })),
+          player_age: {
+            gte: +age,
+          },
+        },
+      }),
     ]);
 
     if (games && total) {
@@ -56,7 +81,11 @@ export class GamesService {
   }
 
   async findAllGenres() {
-    return await this.prismaService.genres.findMany();
+    return await this.prismaService.genres.findMany({
+      orderBy: {
+        desc: 'asc',
+      },
+    });
   }
 
   findOne(id: string) {

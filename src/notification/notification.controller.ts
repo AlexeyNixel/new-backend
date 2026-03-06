@@ -26,8 +26,8 @@ export class NotificationController {
   }
 
   @Get()
-  findAll(@Query() paginationQuery: PaginationQueryDto) {
-    return this.notificationService.findAll(paginationQuery);
+  async findAll(@Query() paginationQuery: PaginationQueryDto) {
+    return await this.notificationService.findAll(paginationQuery);
   }
 
   @UseGuards(JwtAuthGuard)
