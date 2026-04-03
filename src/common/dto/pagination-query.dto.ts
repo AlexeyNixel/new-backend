@@ -11,4 +11,5 @@ export class PaginationQueryDto {
   department?: string;
   genres?: Array<string>;
   age?: number;
+  tags?: string[];
 }

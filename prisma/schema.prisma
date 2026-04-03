@@ -44,6 +44,14 @@ model Post {
   @@map("posts")
 }
 
+model Achievements {
+  id String @id @default(uuid())
+  label String
+  count String
+  isDeleted Boolean @default(false) 
+  createdAt DateTime @default(now())
+}
+
 model Department {
   id            String   @id @default(uuid())
   title         String   @db.VarChar(200)

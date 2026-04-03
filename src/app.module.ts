@@ -20,6 +20,7 @@ import { BookCategoryModule } from './book-category/book-category.module';
 import { NotificationModule } from './notification/notification.module';
 import { PageModule } from './page/page.module';
 import { GamesModule } from './games/games.module';
+import { AchievementsModule } from './achievements/achievements.module';
 
 @Module({
   imports: [
@@ -58,6 +59,7 @@ import { GamesModule } from './games/games.module';
     NotificationModule,
     PageModule,
     GamesModule,
+    AchievementsModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

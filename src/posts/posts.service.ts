@@ -79,14 +79,31 @@ export class PostsService {
       sortBy = 'publishedAt',
       sortOrder = 'desc',
       search = '',
+      tags = [],
     } = paginationQuery;
 
+    let newTagsArray: string[] = [];
+
+    if (typeof tags === 'string') {
+      newTagsArray = [tags];
+    }
+
+    if (typeof tags === 'object') {
+      newTagsArray.push(...tags);
+    }
     const skip = (page - 1) * limit;
     const include = createInclude(includeQuery);
 
     const whereParams = {
       departmentId: paginationQuery.department,
       isDeleted: isDeleted ? undefined : false,
+      // AND: newTagsArray.map((tag) => ({
+      //   tags: {
+      //     contains: {
+      //       tag
+      //     },
+      //   },
+      // })),
       OR: [
         {
           title: { contains: search },
