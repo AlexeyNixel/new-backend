@@ -44,12 +44,14 @@ model Post {
   @@map("posts")
 }
 
-model Achievements {
-  id String @id @default(uuid())
-  label String
-  count String
-  isDeleted Boolean @default(false) 
+model Achievement {
+  id        String   @id @default(uuid())
+  label     String
+  count     String
+  isDeleted Boolean  @default(false)
   createdAt DateTime @default(now())
+
+  @@map("achievements")
 }
 
 model Department {
@@ -103,6 +105,7 @@ model File {
   BookCollection BookCollection[]  @relation("CollectionPreviewFile")
   books          Book[]            @relation("BookPreviewFile")
   departments    Department[]      @relation("DepartmentPreviewFile")
+  club           Club[]            @relation("ClubPreviewFile")
   slide          MainSliderSlide[]
   posts          Post[]            @relation("PostPreviewFile")
 
@@ -230,7 +233,21 @@ model Page {
   @@map("pages")
 }
 
-/// This view or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model Club {
+  id            String @id @default(uuid())
+  name          String @db.VarChar(80)
+  description   String @db.VarChar(1024)
+  member        String @db.VarChar(128)
+  worktime      String @db.VarChar(64)
+  workDirection Json
+
+  previewFileId String?
+  preview       File?   @relation("ClubPreviewFile", fields: [previewFileId], references: [id])
+
+  @@index([previewFileId])
+  @@map("clubs")
+}
+
 view games {
   id                String  @unique @db.VarChar(20)
   name              String? @db.VarChar(256)

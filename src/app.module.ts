@@ -21,6 +21,7 @@ import { NotificationModule } from './notification/notification.module';
 import { PageModule } from './page/page.module';
 import { GamesModule } from './games/games.module';
 import { AchievementsModule } from './achievements/achievements.module';
+import { ClubsModule } from './clubs/clubs.module';
 
 @Module({
   imports: [
@@ -60,6 +61,7 @@ import { AchievementsModule } from './achievements/achievements.module';
     PageModule,
     GamesModule,
     AchievementsModule,
+    ClubsModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

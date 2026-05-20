@@ -61,18 +61,14 @@ export class AuthService {
     };
   }
 
-  // async register(registerDto: {
-  //   username: string;
-  //   password: string;
-  //   name?: string;
-  // }) {
-  //   const user = await this.userService.create(registerDto);
-  //   return this.login({
-  //     id: user.id,
-  //     username: user.username,
-  //     name: registerDto.name || undefined,
-  //   });
-  // }
+  async register(registerDto: {
+    username: string;
+    password: string;
+    name?: string;
+  }) {
+    const user = await this.userService.create(registerDto);
+    return user
+  }
 
   async validateToken(payload: any) {
     const user = await this.userService.findById(payload.sub);

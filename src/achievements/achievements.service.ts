@@ -8,7 +8,7 @@ export class AchievementsService {
   constructor(private prismaService: PrismaService) {}
 
   create(createAchievementDto: CreateAchievementDto) {
-    return this.prismaService.achievements.create({
+    return this.prismaService.achievement.create({
       data: {
         ...createAchievementDto,
       },
@@ -16,7 +16,7 @@ export class AchievementsService {
   }
 
   findAll() {
-    return this.prismaService.achievements.findMany({
+    return this.prismaService.achievement.findMany({
       where: {
         isDeleted: false,
       },
@@ -24,7 +24,7 @@ export class AchievementsService {
   }
 
   update(id: string, updateAchievementDto: UpdateAchievementDto) {
-    return this.prismaService.achievements.update({
+    return this.prismaService.achievement.update({
       where: {
         id: id,
       },
