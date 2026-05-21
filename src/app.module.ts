@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import { UserModule } from './user/user.module';
 import { PostsModule } from './posts/posts.module';
 import { DepartmentsModule } from './departments/departments.module';
@@ -35,20 +35,17 @@ import { PageModule } from './page/page.module';
     NavigationItemModule,
     AuthModule,
     PrismaModule,
-    TypeOrmModule.forRootAsync({
+    TypeOrmModule.forRoot({
       name: 'sourceDB',
-      useFactory: (config: ConfigService) => ({
-        type: 'mysql',
-        host: config.get('SOURCE_DB_HOST'),
-        port: config.get('SOURCE_DB_PORT'),
-        username: config.get('SOURCE_DB_USERNAME'),
-        password: config.get('SOURCE_DB_PASSWORD'),
-        database: config.get('SOURCE_DB_NAME'),
-        entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: false,
-        logging: true,
-      }),
-      inject: [ConfigService],
+      type: 'mysql',
+      driver: require('mysql2'), // <-- ЭТА СТРОКА КЛЮЧЕВАЯ
+      host: 'localhost',
+      port: 3306,
+      username: 'root',
+      password: 'example',
+      database: 'db_noub_new',
+      entities: [],
+      synchronize: true, // для разработки
     }),
     MigrationModule,
     EventModule,

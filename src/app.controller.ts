@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller } from '@nestjs/common';
 import { AppService } from './app.service';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
@@ -13,22 +13,4 @@ export class AppController {
     private prisma: PrismaService,
     private readonly appService: AppService,
   ) {}
-
-  @Get()
-  async getHello() {
-    const departments = await this.sourceDB.query('SELECT * FROM Department');
-
-    for (const department of departments) {
-      console.log(department.id);
-      await this.prisma.department.create({
-        data: {
-          id: department.id,
-          title: department.title,
-          isDeleted: !!department.isDeleted,
-          slug: department.slug,
-          createdAt: department.createdAt,
-        },
-      });
-    }
-  }
 }
