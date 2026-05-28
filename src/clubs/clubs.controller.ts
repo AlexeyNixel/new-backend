@@ -1,7 +1,17 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+} from '@nestjs/common';
 import { ClubsService } from './clubs.service';
 import { CreateClubDto } from './dto/create-club.dto';
 import { UpdateClubDto } from './dto/update-club.dto';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
 @Controller('clubs')
 export class ClubsController {
@@ -13,18 +23,18 @@ export class ClubsController {
   }
 
   @Get()
-  findAll() {
-    return this.clubsService.findAll();
+  findAll(@Query() paginationQuery: PaginationQueryDto) {
+    return this.clubsService.findAll(paginationQuery);
   }
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.clubsService.findOne(+id);
+    return this.clubsService.findOne(id);
   }
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateClubDto: UpdateClubDto) {
-    return this.clubsService.update(+id, updateClubDto);
+    return this.clubsService.update(id, updateClubDto);
   }
 
   @Delete(':id')

@@ -86,7 +86,6 @@ export class PostsService {
     } = paginationQuery;
 
     let newTagsArray: string[] = [];
-    console.log(paginationQuery);
 
     if (typeof tags === 'string') {
       newTagsArray = [tags];
@@ -94,7 +93,6 @@ export class PostsService {
       newTagsArray.push(...tags);
     }
 
-    console.log(newTagsArray);
     const skip = (page - 1) * limit;
     const include: any = createInclude(includeQuery);
 
