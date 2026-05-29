@@ -1,4 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Injectable,
+} from '@nestjs/common';
 import { CreatePageDto } from './dto/create-page.dto';
 import { UpdatePageDto } from './dto/update-page.dto';
 import { PrismaService } from '../prisma.service';
@@ -61,9 +65,7 @@ export class PageService {
     });
 
     if (!page) {
-      return {
-        message: 'Page not found',
-      };
+      throw new HttpException('Пользователь не найден', HttpStatus.NOT_FOUND);
     }
     return page;
   }
