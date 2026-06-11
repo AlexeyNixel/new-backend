@@ -1,13 +1,10 @@
-import {
-  HttpException,
-  HttpStatus,
-  Injectable,
-} from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { CreatePageDto } from './dto/create-page.dto';
 import { UpdatePageDto } from './dto/update-page.dto';
 import { PrismaService } from '../prisma.service';
 import { createSlug } from '../common/utils/slugify.utils';
 import { v4 } from 'uuid';
+import { Prisma } from 'generated/prisma';
 import { ResponseService } from '../common/services/response.service';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
@@ -22,10 +19,12 @@ export class PageService {
     if (!createPageDto.slug) {
       createPageDto.slug = createSlug(createPageDto.title);
     }
+    const { blocks, ...rest } = createPageDto;
     return this.prismaService.page.create({
       data: {
         id: v4(),
-        ...createPageDto,
+        ...rest,
+        blocks: blocks as unknown as Prisma.InputJsonValue,
       },
     });
   }
@@ -71,12 +70,14 @@ export class PageService {
   }
 
   update(id: string, updatePageDto: UpdatePageDto) {
+    const { blocks, ...rest } = updatePageDto;
     return this.prismaService.page.update({
       where: {
         id: id,
       },
       data: {
-        ...updatePageDto,
+        ...rest,
+        blocks: blocks as unknown as Prisma.InputJsonValue,
       },
     });
   }

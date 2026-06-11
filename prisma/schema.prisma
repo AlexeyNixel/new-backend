@@ -229,6 +229,7 @@ model Page {
   content   String? @db.LongText
   isDeleted Boolean @default(false)
   slug      String? @unique @db.VarChar(200)
+  blocks    Json?
 
   @@map("pages")
 }
