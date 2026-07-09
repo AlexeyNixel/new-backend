@@ -287,4 +287,5 @@ enum NotificationType {
   success
   warning
   error
+  festive
 }
