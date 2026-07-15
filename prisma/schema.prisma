@@ -108,6 +108,7 @@ model File {
   club           Club[]            @relation("ClubPreviewFile")
   slide          MainSliderSlide[]
   posts          Post[]            @relation("PostPreviewFile")
+  mapPoints      MapPoint[]
 
   @@map("files")
 }
@@ -247,6 +248,24 @@ model Club {
 
   @@index([previewFileId])
   @@map("clubs")
+}
+
+model MapPoint {
+  id          String   @id @default(uuid())
+  title       String   @db.VarChar(200)
+  description String?  @db.VarChar(500)
+  imageFileId String?
+  content     String?  @db.LongText
+  lat         Float
+  lng         Float
+  preset      String?  @db.VarChar(100)
+  isDeleted   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  image       File?    @relation(fields: [imageFileId], references: [id])
+
+  @@index([imageFileId])
+  @@map("map_points")
 }
 
 view games {
