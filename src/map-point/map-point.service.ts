@@ -34,6 +34,9 @@ export class MapPointService {
         skip,
         take: +limit,
         orderBy: { createdAt: 'desc' },
+        include: {
+          image: true,
+        },
       }),
       this.prismaService.mapPoint.count({ where }),
     ]);
@@ -50,6 +53,9 @@ export class MapPointService {
   async findOne(id: string) {
     const mapPoint = await this.prismaService.mapPoint.findUnique({
       where: { id },
+      include: {
+        image: true,
+      },
     });
 
     if (mapPoint) {
