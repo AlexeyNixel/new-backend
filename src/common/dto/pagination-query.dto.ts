@@ -8,4 +8,8 @@ export class PaginationQueryDto {
   include?: string;
   startDate: string;
   endDate: string;
+  department?: string;
+  genres?: Array<string>;
+  age?: number;
+  tags?: string | Array<string>;
 }

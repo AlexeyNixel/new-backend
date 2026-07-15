@@ -19,6 +19,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 export class TagsController {
   constructor(private readonly tagsService: TagsService) {}
 
+  @UseGuards(JwtAuthGuard)
   @Get('migrate')
   migrate() {
     return this.tagsService.migrateTag();

@@ -18,6 +18,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 export class FilesController {
   constructor(private readonly filesService: FilesService) {}
 
+  @UseGuards(JwtAuthGuard)
   @Get('migrate')
   async migrate() {
     return this.filesService.migrate();

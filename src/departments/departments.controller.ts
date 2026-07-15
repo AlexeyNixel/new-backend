@@ -18,6 +18,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 export class DepartmentsController {
   constructor(private readonly departmentsService: DepartmentsService) {}
 
+  @UseGuards(JwtAuthGuard)
   @Get('/migrate')
   migrate() {
     return this.departmentsService.migrate();

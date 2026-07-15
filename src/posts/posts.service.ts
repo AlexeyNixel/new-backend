@@ -79,13 +79,40 @@ export class PostsService {
       sortBy = 'publishedAt',
       sortOrder = 'desc',
       search = '',
+      tags = [],
+      startDate,
+      endDate,
+      department,
     } = paginationQuery;
 
+    let newTagsArray: string[] = [];
+
+    if (typeof tags === 'string') {
+      newTagsArray = [tags];
+    } else if (typeof tags === 'object') {
+      newTagsArray.push(...tags);
+    }
+
     const skip = (page - 1) * limit;
-    const include = createInclude(includeQuery);
+    const include: any = createInclude(includeQuery);
 
     const whereParams = {
+      publishedAt: {
+        gte: startDate,
+        lte: endDate,
+      },
+      departmentId: department,
       isDeleted: isDeleted ? undefined : false,
+
+      AND: newTagsArray.map((tag) => ({
+        tags: {
+          some: {
+            tag: {
+              id: tag,
+            },
+          },
+        },
+      })),
       OR: [
         {
           title: { contains: search },
@@ -96,15 +123,20 @@ export class PostsService {
 
     const [posts, total] = await Promise.all([
       this.prismaService.post.findMany({
-        where: { ...whereParams },
+        where: {
+          ...whereParams,
+        },
         orderBy: {
           [sortBy]: sortOrder,
         },
         skip: skip,
         take: +limit,
-        include: {
-          ...include,
-        },
+        include: include?.tags
+          ? {
+              ...include,
+              tags: { select: { tag: { select: { id: true, title: true } } } },
+            }
+          : { ...include },
       }),
 
       this.prismaService.post.count({

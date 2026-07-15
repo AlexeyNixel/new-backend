@@ -28,6 +28,10 @@ export class NavigationItemService {
       createNavigationItemDto.to = '/page/' + createNavigationItemDto.slug;
     }
 
+    if (!createNavigationItemDto?.parentId) {
+      createNavigationItemDto.parentId = undefined;
+    }
+
     return this.prismaService.navigationItem.create({
       data: {
         ...createNavigationItemDto,
