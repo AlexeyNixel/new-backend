@@ -22,6 +22,7 @@ import { PageModule } from './page/page.module';
 import { GamesModule } from './games/games.module';
 import { AchievementsModule } from './achievements/achievements.module';
 import { ClubsModule } from './clubs/clubs.module';
+import { MapPointModule } from './map-point/map-point.module';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { ClubsModule } from './clubs/clubs.module';
     GamesModule,
     AchievementsModule,
     ClubsModule,
+    MapPointModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],
