@@ -111,18 +111,20 @@ export class EventService {
       const { title, age } = this.findAge(event.title);
       const now =
         event.eventDate.toISOString().slice(0, 11) + event.eventTime + '.000Z';
-      await this.prismaService.event.create({
-        data: {
-          id: event.id,
-          title: title,
-          content: event.desc,
-          phone: event.phone || '123',
-          place: event.eventPlace || 'guest',
-          eventTime: now,
-          createdAt: now,
-          age: age ? +age : undefined,
-          isDeleted: !!event.IsDeleted,
-        },
+      const data = {
+        title: title,
+        content: event.desc,
+        phone: event.phone || '123',
+        place: event.eventPlace || 'guest',
+        eventTime: now,
+        createdAt: now,
+        age: age ? +age : undefined,
+        isDeleted: !!event.IsDeleted,
+      };
+      await this.prismaService.event.upsert({
+        where: { id: event.id },
+        create: { id: event.id, ...data },
+        update: data,
       });
     }
 
