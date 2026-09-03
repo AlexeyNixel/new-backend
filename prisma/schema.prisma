@@ -39,8 +39,14 @@ model Post {
   preview       File?             @relation("PostPreviewFile", fields: [previewFileId], references: [id])
   tags          TagsOnPosts[]
 
+  /// Тело новости без HTML-тегов. Генерируемая STORED-колонка (см. миграцию
+  /// 20260903..._posts_fulltext_search) — заполняется MySQL/MariaDB автоматически
+  /// из `content`, приложение её не пишет. Используется только для FULLTEXT-поиска.
+  contentText String? @db.LongText
+
   @@index([departmentId])
   @@index([previewFileId])
+  @@fulltext([title, description, contentText])
   @@map("posts")
 }
 
