@@ -199,23 +199,60 @@ export class FilesService {
   }
 
   async migrate() {
-    const oldFiles = await this.sourceDB.query('SELECT * from File');
+    const oldFiles: Array<{
+      id: string;
+      originalName: string;
+      mimeType: string;
+      hash: string | null;
+      type: 'IMAGE' | 'DOCUMENT' | 'ARCHIVE' | 'EXHIBITION';
+      path: string;
+      createdAt: Date;
+    }> = await this.sourceDB.query('SELECT * from File ORDER BY createdAt');
+
+    let migrated = 0;
+    let skipped = 0;
+    const errors: Array<{ id: string; error: string }> = [];
 
     for (const file of oldFiles) {
-      await this.prismaService.file.create({
-        data: {
+      try {
+        const existing = await this.prismaService.file.findUnique({
+          where: { id: file.id },
+        });
+
+        if (existing) {
+          skipped++;
+          continue;
+        }
+
+        await this.prismaService.file.create({
+          data: {
+            id: file.id,
+            originalName: file.originalName,
+            mimeType: file.mimeType,
+            hash: file.hash,
+            type: file.type,
+            path: file.path,
+            createdAt: file.createdAt,
+            size: 0,
+            height: 0,
+            width: 0,
+          },
+        });
+        migrated++;
+      } catch (error) {
+        errors.push({
           id: file.id,
-          originalName: file.originalName,
-          mimeType: file.mimeType,
-          hash: file.hash,
-          type: file.type,
-          path: file.path,
-          createdAt: file.createdAt,
-          size: 0,
-          height: 0,
-          width: 0,
-        },
-      });
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
     }
+
+    return {
+      total: oldFiles.length,
+      migrated,
+      skipped,
+      failed: errors.length,
+      errors,
+    };
   }
 }

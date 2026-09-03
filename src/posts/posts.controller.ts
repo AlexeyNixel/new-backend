@@ -21,7 +21,7 @@ export class PostsController {
   @UseGuards(JwtAuthGuard)
   @Get('migrate')
   migrate() {
-    return this.postsService.migratePostOnRubric();
+    return this.postsService.migratePosts();
   }
 
   @UseGuards(JwtAuthGuard)
