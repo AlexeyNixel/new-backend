@@ -44,6 +44,11 @@ export class PostsController {
     return this.postsService.findAll(paginationQuery, includeQuery);
   }
 
+  @Get('pinned')
+  findPinned() {
+    return this.postsService.findPinned();
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.postsService.findOne(id);

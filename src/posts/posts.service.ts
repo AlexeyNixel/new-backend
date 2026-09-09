@@ -303,6 +303,45 @@ export class PostsService {
     };
   }
 
+  async findPinned() {
+    const post = await this.prismaService.post.findFirst({
+      where: {
+        isPinned: true,
+      },
+      orderBy: {
+        publishedAt: 'desc',
+      },
+      include: {
+        preview: true,
+        department: true,
+        tags: {
+          select: {
+            tag: {
+              select: {
+                id: true,
+                title: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!post) {
+      return {
+        message: `Закрепленный пост не найден`,
+      };
+    }
+
+    return {
+      ...post,
+      tags: post.tags.map((tagRelation) => ({
+        id: tagRelation.tag.id,
+        label: tagRelation.tag.title,
+      })),
+    };
+  }
+
   async update(id: string, updatePostDto: UpdatePostDto) {
     const post = await this.prismaService.post.findUnique({
       where: {
