@@ -51,6 +51,15 @@ export class AuthService {
       path: '/',
     });
 
+    response.cookie('access_token', token, {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'lax',
+      domain: 'localhost',
+      maxAge: 24 * 60 * 60 * 1000,
+      path: '/',
+    });
+
     return {
       access_token: token,
       user: {
@@ -61,13 +70,29 @@ export class AuthService {
     };
   }
 
+  logout(response: Response) {
+    // Куку ставили с двумя разными domain (см. login) — чистим оба варианта
+    // теми же атрибутами, иначе браузер куку не удалит.
+    for (const domain of ['.infomania.ru', 'localhost']) {
+      response.clearCookie('access_token', {
+        httpOnly: true,
+        secure: false,
+        sameSite: 'lax',
+        domain,
+        path: '/',
+      });
+    }
+
+    return { success: true };
+  }
+
   async register(registerDto: {
     username: string;
     password: string;
     name?: string;
   }) {
     const user = await this.userService.create(registerDto);
-    return user
+    return user;
   }
 
   async validateToken(payload: any) {
@@ -76,6 +101,7 @@ export class AuthService {
       throw new UnauthorizedException('Пользователь не найден');
     }
 
-    return user;
+    const { password: _, ...result } = user;
+    return result;
   }
 }
