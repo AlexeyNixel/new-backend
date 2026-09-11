@@ -6,14 +6,19 @@ import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 export class GamesController {
   constructor(private readonly gamesService: GamesService) {}
 
+  @Get('genres')
+  findAllGenres() {
+    return this.gamesService.findAllGenres();
+  }
+
+  @Get('series')
+  findAllSeries() {
+    return this.gamesService.findAllSeries();
+  }
+
   @Get()
   findAll(@Query() paginationQuery: PaginationQueryDto) {
     return this.gamesService.findAll(paginationQuery);
-  }
-
-  @Get('/genres')
-  findAllGenres() {
-    return this.gamesService.findAllGenres();
   }
 
   @Get(':id')
