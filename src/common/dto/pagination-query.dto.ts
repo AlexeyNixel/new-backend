@@ -12,4 +12,13 @@ export class PaginationQueryDto {
   genres?: Array<string>;
   age?: number;
   tags?: string | Array<string>;
+  // Фильтры игр (src/games)
+  players?: number;
+  ageMin?: number;
+  ageMax?: number;
+  maxDuration?: number;
+  yearFrom?: number;
+  yearTo?: number;
+  seriesId?: string;
+  availableOnly?: boolean;
 }
