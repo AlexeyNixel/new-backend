@@ -2,9 +2,7 @@ import { extractSeriesBaseTitle } from './extract-series-base-title.utils';
 
 describe('extractSeriesBaseTitle', () => {
   it('берёт часть названия до двоеточия', () => {
-    expect(extractSeriesBaseTitle('Дюна: Приключения в Империи')).toBe(
-      'Дюна',
-    );
+    expect(extractSeriesBaseTitle('Дюна: Приключения в Империи')).toBe('Дюна');
     expect(
       extractSeriesBaseTitle('Warhammer Fantasy Roleplay: Книга правил'),
     ).toBe('Warhammer Fantasy Roleplay');
@@ -23,9 +21,9 @@ describe('extractSeriesBaseTitle', () => {
 
   it('останавливается на первом встреченном разделителе, если их несколько', () => {
     // двоеточие раньше точки — база должна быть по двоеточию
-    expect(
-      extractSeriesBaseTitle('Unmatched: Битва Легенд. Том второй'),
-    ).toBe('Unmatched');
+    expect(extractSeriesBaseTitle('Unmatched: Битва Легенд. Том второй')).toBe(
+      'Unmatched',
+    );
   });
 
   it('не путает точку внутри аббревиатуры/без пробела с разделителем серии', () => {

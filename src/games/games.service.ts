@@ -22,6 +22,7 @@ import {
 } from './utils/parse-game-fields.utils';
 import { mapGameStatus } from './utils/map-game-status.utils';
 import { extractSeriesBaseTitle } from './utils/extract-series-base-title.utils';
+import { groupBySeriesTitle } from './utils/group-by-series.utils';
 
 const GAME_INCLUDE = {
   images: { orderBy: { order: 'asc' as const }, include: { file: true } },
@@ -222,6 +223,44 @@ export class GamesService {
       where: { id },
       data: dto,
     });
+  }
+
+  /**
+   * Пересчитывает серии для ВСЕХ игр по актуальной эвристике
+   * {@link groupBySeriesTitle} — удаляет текущие GameSeries и привязки,
+   * группирует заново. Нужен, когда правится сама эвристика (новый
+   * разделитель и т.п.) и старые данные надо перегруппировать, а не
+   * только новые — migrate() группирует лишь то, что переносит сам.
+   */
+  async regroupSeries() {
+    const games = await this.prismaService.game.findMany({
+      where: { isDeleted: false },
+      select: { id: true, title: true },
+    });
+
+    const groups = groupBySeriesTitle(games);
+
+    await this.prismaService.game.updateMany({ data: { seriesId: null } });
+    await this.prismaService.gameSeries.deleteMany({});
+
+    let seriesCreated = 0;
+    let gamesGrouped = 0;
+
+    for (const rows of groups.values()) {
+      const title = extractSeriesBaseTitle(rows[0].title) as string;
+      const series = await this.prismaService.gameSeries.create({
+        data: { id: v4(), title, slug: createSlug(title, undefined, true) },
+      });
+      seriesCreated++;
+
+      await this.prismaService.game.updateMany({
+        where: { id: { in: rows.map((row) => row.id) } },
+        data: { seriesId: series.id },
+      });
+      gamesGrouped += rows.length;
+    }
+
+    return { totalGames: games.length, seriesCreated, gamesGrouped };
   }
 
   private async syncImages(gameId: string, fileIds: string[]) {
@@ -468,28 +507,19 @@ export class GamesService {
       ...glListUnique.map((row) => this.normalizeGlList(row)),
     ];
 
-    // Группировка в серии: часть названия до ":" встречается у >= 2 игр.
-    const seriesGroups = new Map<string, NormalizedGameRow[]>();
-    for (const row of normalized) {
-      const base = extractSeriesBaseTitle(row.title);
-      if (!base) continue;
+    const seriesGroups = groupBySeriesTitle(normalized);
+    const seriesIdByExternalId = new Map<string, string>();
 
-      const key = base.toLowerCase();
-      const group = seriesGroups.get(key) ?? [];
-      group.push(row);
-      seriesGroups.set(key, group);
-    }
-
-    const seriesIdByKey = new Map<string, string>();
-    for (const [key, rows] of seriesGroups) {
-      if (rows.length < 2) continue;
-
+    for (const rows of seriesGroups.values()) {
       const title = extractSeriesBaseTitle(rows[0].title) as string;
       const series = await this.prismaService.gameSeries.create({
         data: { id: v4(), title, slug: createSlug(title, undefined, true) },
       });
-      seriesIdByKey.set(key, series.id);
       seriesCreated++;
+
+      for (const row of rows) {
+        seriesIdByExternalId.set(row.externalId, series.id);
+      }
     }
 
     const genreByTag = new Map(
@@ -509,8 +539,7 @@ export class GamesService {
           continue;
         }
 
-        const seriesKey = extractSeriesBaseTitle(row.title)?.toLowerCase();
-        const seriesId = seriesKey ? seriesIdByKey.get(seriesKey) : undefined;
+        const seriesId = seriesIdByExternalId.get(row.externalId);
 
         const game = await this.prismaService.game.create({
           data: {

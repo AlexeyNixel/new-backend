@@ -26,6 +26,12 @@ export class GamesController {
     return this.gamesService.migrate();
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Get('regroup-series')
+  regroupSeries() {
+    return this.gamesService.regroupSeries();
+  }
+
   @Get('genres')
   findAllGenres() {
     return this.gamesService.findAllGenres();
