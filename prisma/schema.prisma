@@ -115,6 +115,8 @@ model File {
   slide          MainSliderSlide[]
   posts          Post[]            @relation("PostPreviewFile")
   mapPoints      MapPoint[]
+  gameImages     GameImage[]
+  gameRulesFor   Game[]            @relation("GameRulesFile")
 
   @@map("files")
 }
@@ -274,28 +276,91 @@ model MapPoint {
   @@map("map_points")
 }
 
-view games {
-  id                String  @unique @db.VarChar(20)
-  name              String? @db.VarChar(256)
-  player_min        Int?
-  player_max        Int?
-  player_age        Int?
-  short_description String? @db.VarChar(512)
-  full_description  String? @db.VarChar(4192)
-  cover_file        String? @db.VarChar(32)
-  rules_file        String? @db.VarChar(32)
-  genres            String? @db.VarChar(128)
-  game_duration     String? @db.VarChar(64)
-  game_year         String? @db.VarChar(32)
-  status            Int?    @default(0)
-  place             String? @db.VarChar(512)
-  comment           String? @db.VarChar(1024)
-  status_desc       String  @db.VarChar(64)
+enum GameStatus {
+  IN_STOCK
+  ON_HANDS
+  TEMPORARILY_UNAVAILABLE
+  WRITTEN_OFF
+  LOST
+  DAMAGED
 }
 
-view genres {
-  tag  String  @default("") @db.VarChar(20)
-  desc String? @db.VarChar(32)
+model Game {
+  id               String          @id @default(uuid())
+  slug             String          @unique @db.VarChar(300)
+  externalId       String?         @unique @db.VarChar(32)
+  title            String          @db.VarChar(256)
+  shortDescription String?         @db.VarChar(512)
+  description      String?         @db.LongText
+  playerMin        Int?
+  playerMax        Int?
+  playerAge        Int?
+  durationMin      Int?
+  durationMax      Int?
+  year             Int?
+  status           GameStatus      @default(IN_STOCK)
+  place            String?         @db.VarChar(512)
+  comment          String?         @db.VarChar(1024)
+  isDeleted        Boolean         @default(false)
+  videoUrl         String?         @db.VarChar(500)
+  seriesId         String?
+  series           GameSeries?     @relation(fields: [seriesId], references: [id])
+  rulesFileId      String?
+  rulesFile        File?           @relation("GameRulesFile", fields: [rulesFileId], references: [id])
+  images           GameImage[]
+  genres           GenresOnGames[]
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@index([seriesId])
+  @@index([rulesFileId])
+  @@fulltext([title, shortDescription, description])
+  @@map("games")
+}
+
+model GameImage {
+  id     String @id @default(uuid())
+  gameId String
+  fileId String
+  order  Int    @default(0)
+  game   Game   @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  file   File   @relation(fields: [fileId], references: [id])
+
+  @@unique([gameId, fileId])
+  @@index([gameId])
+  @@index([fileId], map: "game_images_fileId_fkey")
+  @@map("game_images")
+}
+
+model GameGenre {
+  id    String          @id @default(uuid())
+  tag   String          @unique @db.VarChar(32)
+  title String          @db.VarChar(64)
+  games GenresOnGames[]
+
+  @@map("game_genres")
+}
+
+model GenresOnGames {
+  gameId  String
+  genreId String
+  game    Game      @relation(fields: [gameId], references: [id])
+  genre   GameGenre @relation(fields: [genreId], references: [id])
+
+  @@id([gameId, genreId])
+  @@index([genreId], map: "genres_on_games_genreId_fkey")
+  @@map("genres_on_games")
+}
+
+model GameSeries {
+  id          String   @id @default(uuid())
+  slug        String   @unique @db.VarChar(300)
+  title       String   @db.VarChar(256)
+  description String?  @db.VarChar(1024)
+  createdAt   DateTime @default(now())
+  games       Game[]
+
+  @@map("game_series")
 }
 
 enum FileType {

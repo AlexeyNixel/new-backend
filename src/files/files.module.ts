@@ -13,5 +13,6 @@ import { FilesController } from './files.controller';
     MinioService,
     ConfigService,
   ],
+  exports: [FilesService],
 })
 export class FilesModule {}

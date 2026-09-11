@@ -9,7 +9,7 @@ import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { ResponseService } from '../common/services/response.service';
 import { createInclude } from '../common/utils/include.utils';
 import { parseSlug } from '../common/utils/validate.utils';
-import { toBooleanFulltextQuery } from './utils/fulltext-query';
+import { toBooleanFulltextQuery } from '../common/utils/fulltext-query';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { OldPost } from './dto/old-post.dto';
