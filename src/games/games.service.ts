@@ -1,16 +1,27 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { Prisma } from 'generated/prisma';
 import { v4 } from 'uuid';
+import { Readable } from 'stream';
 import { PrismaService } from '../prisma.service';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { ResponseService } from '../common/services/response.service';
 import { parseSlug } from '../common/utils/validate.utils';
 import { createSlug } from '../common/utils/slugify.utils';
 import { toBooleanFulltextQuery } from '../common/utils/fulltext-query';
+import { decodeHtmlEntities } from '../common/utils/decode-html-entities.utils';
+import { FilesService } from '../files/files.service';
 import { CreateGameDto } from './dto/create-game.dto';
 import { UpdateGameDto } from './dto/update-game.dto';
 import { CreateGameGenreDto } from './dto/create-game-genre.dto';
 import { CreateGameSeriesDto } from './dto/create-game-series.dto';
+import {
+  parseAgeWithPlus,
+  parseDuration,
+  parsePlayerRange,
+  parseYear,
+} from './utils/parse-game-fields.utils';
+import { mapGameStatus } from './utils/map-game-status.utils';
+import { extractSeriesBaseTitle } from './utils/extract-series-base-title.utils';
 
 const GAME_INCLUDE = {
   images: { orderBy: { order: 'asc' as const }, include: { file: true } },
@@ -24,6 +35,7 @@ export class GamesService {
   constructor(
     private prismaService: PrismaService,
     private responseService: ResponseService,
+    private filesService: FilesService,
   ) {}
 
   async findAll(paginationQuery: PaginationQueryDto) {
@@ -380,4 +392,366 @@ export class GamesService {
       total: Number(countRows[0]?.total ?? 0),
     };
   }
+
+  private static readonly COVER_BASE_URL =
+    'http://infomania.ru/gamelibrary/img/game-cover/';
+  private static readonly RULES_BASE_URL =
+    'http://infomania.ru/gamelibrary/files/rules/';
+
+  /**
+   * Переносит игры из старой БД nomb_games (g_data + service/status-справочники,
+   * плюс уникальные по названию строки gl_list) в модель Game. Идемпотентно:
+   * уже перенесённые (по externalId) пропускаются, ошибка одной строки не
+   * прерывает остальные (см. память проекта migration-logic-duplicated).
+   */
+  async migrate() {
+    let migrated = 0;
+    let skipped = 0;
+    let seriesCreated = 0;
+    const errors: Array<{ externalId: string; error: string }> = [];
+
+    await this.migrateGenres();
+
+    const gData = await this.prismaService.$queryRawUnsafe<
+      Array<{
+        g_id: string;
+        g_name: string;
+        g_p_min: number | null;
+        g_p_max: number | null;
+        g_age: number | null;
+        g_desc: string | null;
+        g_content: string | null;
+        g_cover: string | null;
+        g_rules_file: string | null;
+        g_tags: string | null;
+        g_duration: string | null;
+        g_year: string | null;
+        g_status: number | null;
+        g_place: string | null;
+        g_comment: string | null;
+      }>
+    >(
+      `SELECT d.g_id, d.g_name, d.g_p_min, d.g_p_max, d.g_age, d.g_desc,
+              d.g_content, d.g_cover, d.g_rules_file, d.g_tags, d.g_duration,
+              d.g_year, s.g_status, s.g_place, s.g_comment
+         FROM nomb_games.g_data d
+         JOIN nomb_games.g_service s ON s.id = d.g_id
+        ORDER BY d.g_id`,
+    );
+
+    const glList = await this.prismaService.$queryRawUnsafe<
+      Array<{
+        id: number;
+        title: string;
+        description: string | null;
+        category: string | null;
+        count_gamers: string | null;
+        gametime: string | null;
+        age: string | null;
+        create_year: string | null;
+      }>
+    >(
+      `SELECT id, title, description, category, count_gamers, gametime, age, create_year
+         FROM nomb_games.gl_list
+        ORDER BY id`,
+    );
+
+    const gDataTitles = new Set(
+      gData.map((row) => row.g_name.trim().toLowerCase()),
+    );
+    const glListUnique = glList.filter(
+      (row) => !gDataTitles.has(row.title.trim().toLowerCase()),
+    );
+
+    const normalized: NormalizedGameRow[] = [
+      ...gData.map((row) => this.normalizeGData(row)),
+      ...glListUnique.map((row) => this.normalizeGlList(row)),
+    ];
+
+    // Группировка в серии: часть названия до ":" встречается у >= 2 игр.
+    const seriesGroups = new Map<string, NormalizedGameRow[]>();
+    for (const row of normalized) {
+      const base = extractSeriesBaseTitle(row.title);
+      if (!base) continue;
+
+      const key = base.toLowerCase();
+      const group = seriesGroups.get(key) ?? [];
+      group.push(row);
+      seriesGroups.set(key, group);
+    }
+
+    const seriesIdByKey = new Map<string, string>();
+    for (const [key, rows] of seriesGroups) {
+      if (rows.length < 2) continue;
+
+      const title = extractSeriesBaseTitle(rows[0].title) as string;
+      const series = await this.prismaService.gameSeries.create({
+        data: { id: v4(), title, slug: createSlug(title, undefined, true) },
+      });
+      seriesIdByKey.set(key, series.id);
+      seriesCreated++;
+    }
+
+    const genreByTag = new Map(
+      (await this.prismaService.gameGenre.findMany()).map((genre) => [
+        genre.tag,
+        genre.id,
+      ]),
+    );
+
+    for (const row of normalized) {
+      try {
+        const existing = await this.prismaService.game.findUnique({
+          where: { externalId: row.externalId },
+        });
+        if (existing) {
+          skipped++;
+          continue;
+        }
+
+        const seriesKey = extractSeriesBaseTitle(row.title)?.toLowerCase();
+        const seriesId = seriesKey ? seriesIdByKey.get(seriesKey) : undefined;
+
+        const game = await this.prismaService.game.create({
+          data: {
+            id: v4(),
+            externalId: row.externalId,
+            title: row.title,
+            slug: await this.uniqueSlug(row.title),
+            shortDescription: row.shortDescription,
+            description: row.description,
+            playerMin: row.playerMin,
+            playerMax: row.playerMax,
+            playerAge: row.playerAge,
+            durationMin: row.durationMin,
+            durationMax: row.durationMax,
+            year: row.year,
+            status: row.status,
+            place: row.place,
+            comment: row.comment,
+            seriesId: seriesId || undefined,
+          },
+        });
+
+        for (const tag of row.genreTags) {
+          const genreId = genreByTag.get(tag);
+          if (genreId) {
+            await this.prismaService.genresOnGames.create({
+              data: { gameId: game.id, genreId },
+            });
+          }
+        }
+
+        if (row.coverFile) {
+          await this.attachDownloadedImage(game.id, row.coverFile);
+        }
+        if (row.rulesFile) {
+          await this.attachDownloadedRules(game.id, row.rulesFile);
+        }
+
+        migrated++;
+      } catch (error) {
+        errors.push({
+          externalId: row.externalId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
+    return {
+      total: normalized.length,
+      migrated,
+      skipped,
+      failed: errors.length,
+      errors,
+      seriesCreated,
+    };
+  }
+
+  private normalizeGData(row: {
+    g_id: string;
+    g_name: string;
+    g_p_min: number | null;
+    g_p_max: number | null;
+    g_age: number | null;
+    g_desc: string | null;
+    g_content: string | null;
+    g_cover: string | null;
+    g_rules_file: string | null;
+    g_tags: string | null;
+    g_duration: string | null;
+    g_year: string | null;
+    g_status: number | null;
+    g_place: string | null;
+    g_comment: string | null;
+  }): NormalizedGameRow {
+    const duration = parseDuration(row.g_duration);
+
+    return {
+      externalId: row.g_id,
+      title: decodeHtmlEntities(row.g_name),
+      shortDescription: row.g_desc ? decodeHtmlEntities(row.g_desc) : null,
+      description: row.g_content ? decodeHtmlEntities(row.g_content) : null,
+      playerMin: row.g_p_min || null,
+      playerMax: row.g_p_max || null,
+      playerAge: row.g_age,
+      durationMin: duration.min,
+      durationMax: duration.max,
+      year: parseYear(row.g_year),
+      status: mapGameStatus(row.g_status),
+      place: row.g_place,
+      comment: row.g_comment,
+      genreTags: (row.g_tags || '')
+        .split(';')
+        .map((tag) => tag.trim())
+        .filter(Boolean),
+      coverFile: row.g_cover || null,
+      rulesFile: row.g_rules_file || null,
+    };
+  }
+
+  private normalizeGlList(row: {
+    id: number;
+    title: string;
+    description: string | null;
+    category: string | null;
+    count_gamers: string | null;
+    gametime: string | null;
+    age: string | null;
+    create_year: string | null;
+  }): NormalizedGameRow {
+    const players = parsePlayerRange(row.count_gamers);
+    const duration = parseDuration(row.gametime);
+
+    return {
+      externalId: `gl-${row.id}`,
+      title: decodeHtmlEntities(row.title),
+      shortDescription: null,
+      description: row.description ? decodeHtmlEntities(row.description) : null,
+      playerMin: players.min,
+      playerMax: players.max,
+      playerAge: parseAgeWithPlus(row.age),
+      durationMin: duration.min,
+      durationMax: duration.max,
+      year: parseYear(row.create_year),
+      status: 'IN_STOCK',
+      place: null,
+      comment: null,
+      genreTags: [],
+      coverFile: null,
+      rulesFile: null,
+    };
+  }
+
+  private async migrateGenres() {
+    const genres = await this.prismaService.$queryRawUnsafe<
+      Array<{ tag: string; desc: string | null }>
+    >('SELECT tag, `desc` FROM nomb_games.g_genre');
+
+    for (const genre of genres) {
+      const existing = await this.prismaService.gameGenre.findUnique({
+        where: { tag: genre.tag },
+      });
+      if (!existing) {
+        await this.prismaService.gameGenre.create({
+          data: { id: v4(), tag: genre.tag, title: genre.desc || genre.tag },
+        });
+      }
+    }
+  }
+
+  private async uniqueSlug(title: string): Promise<string> {
+    const base = createSlug(title);
+    let slug = base;
+    let suffix = 2;
+
+    while (await this.prismaService.game.findUnique({ where: { slug } })) {
+      slug = `${base}-${suffix}`;
+      suffix++;
+    }
+
+    return slug;
+  }
+
+  private toSyntheticMulterFile(
+    buffer: Buffer,
+    originalname: string,
+    mimetype: string,
+  ): Express.Multer.File {
+    return {
+      buffer,
+      originalname,
+      mimetype,
+      size: buffer.length,
+      fieldname: 'file',
+      encoding: '7bit',
+      stream: Readable.from(buffer),
+      destination: '',
+      filename: originalname,
+      path: '',
+    };
+  }
+
+  private async attachDownloadedImage(gameId: string, coverFile: string) {
+    try {
+      const response = await fetch(GamesService.COVER_BASE_URL + coverFile);
+      if (!response.ok) return;
+
+      const buffer = Buffer.from(await response.arrayBuffer());
+      const extension = coverFile.split('.').pop()?.toLowerCase();
+      const mimeType = extension === 'png' ? 'image/png' : 'image/jpeg';
+
+      const file = await this.filesService.uploadImage(
+        this.toSyntheticMulterFile(buffer, coverFile, mimeType),
+      );
+
+      if (file) {
+        await this.prismaService.gameImage.create({
+          data: { id: v4(), gameId, fileId: file.id, order: 0 },
+        });
+      }
+    } catch {
+      // Игра создаётся и без обложки — картинку можно добавить в админке позже.
+    }
+  }
+
+  private async attachDownloadedRules(gameId: string, rulesFile: string) {
+    try {
+      const response = await fetch(GamesService.RULES_BASE_URL + rulesFile);
+      if (!response.ok) return;
+
+      const buffer = Buffer.from(await response.arrayBuffer());
+      const file = await this.filesService.uploadDocument(
+        this.toSyntheticMulterFile(buffer, rulesFile, 'application/pdf'),
+      );
+
+      if (file) {
+        await this.prismaService.game.update({
+          where: { id: gameId },
+          data: { rulesFileId: file.id },
+        });
+      }
+    } catch {
+      // Правила можно прикрепить и позже — не блокирует создание игры.
+    }
+  }
+}
+
+interface NormalizedGameRow {
+  externalId: string;
+  title: string;
+  shortDescription: string | null;
+  description: string | null;
+  playerMin: number | null;
+  playerMax: number | null;
+  playerAge: number | null;
+  durationMin: number | null;
+  durationMax: number | null;
+  year: number | null;
+  status: ReturnType<typeof mapGameStatus>;
+  place: string | null;
+  comment: string | null;
+  genreTags: string[];
+  coverFile: string | null;
+  rulesFile: string | null;
 }

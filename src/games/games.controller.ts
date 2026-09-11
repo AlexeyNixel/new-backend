@@ -20,6 +20,12 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 export class GamesController {
   constructor(private readonly gamesService: GamesService) {}
 
+  @UseGuards(JwtAuthGuard)
+  @Get('migrate')
+  migrate() {
+    return this.gamesService.migrate();
+  }
+
   @Get('genres')
   findAllGenres() {
     return this.gamesService.findAllGenres();
