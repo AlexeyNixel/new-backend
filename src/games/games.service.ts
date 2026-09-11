@@ -23,6 +23,7 @@ import {
 import { mapGameStatus } from './utils/map-game-status.utils';
 import { extractSeriesBaseTitle } from './utils/extract-series-base-title.utils';
 import { groupBySeriesTitle } from './utils/group-by-series.utils';
+import { normalizeGameTitle } from './utils/normalize-game-title.utils';
 
 const GAME_INCLUDE = {
   images: { orderBy: { order: 'asc' as const }, include: { file: true } },
@@ -496,10 +497,10 @@ export class GamesService {
     );
 
     const gDataTitles = new Set(
-      gData.map((row) => row.g_name.trim().toLowerCase()),
+      gData.map((row) => normalizeGameTitle(row.g_name)),
     );
     const glListUnique = glList.filter(
-      (row) => !gDataTitles.has(row.title.trim().toLowerCase()),
+      (row) => !gDataTitles.has(normalizeGameTitle(row.title)),
     );
 
     const normalized: NormalizedGameRow[] = [
