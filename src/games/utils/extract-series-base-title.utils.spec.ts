@@ -2,9 +2,7 @@ import { extractSeriesBaseTitle } from './extract-series-base-title.utils';
 
 describe('extractSeriesBaseTitle', () => {
   it('берёт часть названия до двоеточия', () => {
-    expect(extractSeriesBaseTitle('Дюна: Приключения в Империи')).toBe(
-      'Дюна',
-    );
+    expect(extractSeriesBaseTitle('Дюна: Приключения в Империи')).toBe('Дюна');
     expect(
       extractSeriesBaseTitle('Warhammer Fantasy Roleplay: Книга правил'),
     ).toBe('Warhammer Fantasy Roleplay');

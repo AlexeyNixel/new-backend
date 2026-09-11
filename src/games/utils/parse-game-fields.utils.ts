@@ -2,9 +2,10 @@
  * Старая БД хранит длительность партии свободным текстом
  * («20+ минут», «15-60 минут», «45 минут»). Разбираем в минуты.
  */
-export function parseDuration(
-  text: string | null | undefined,
-): { min: number | null; max: number | null } {
+export function parseDuration(text: string | null | undefined): {
+  min: number | null;
+  max: number | null;
+} {
   if (!text) {
     return { min: null, max: null };
   }
@@ -38,9 +39,10 @@ export function parseYear(text: string | null | undefined): number | null {
 }
 
 /** gl_list.count_gamers: "3-9" -> {min:3,max:9}, "4" -> {min:4,max:4}. */
-export function parsePlayerRange(
-  text: string | null | undefined,
-): { min: number | null; max: number | null } {
+export function parsePlayerRange(text: string | null | undefined): {
+  min: number | null;
+  max: number | null;
+} {
   if (!text) {
     return { min: null, max: null };
   }

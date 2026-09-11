@@ -1,10 +1,16 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { Prisma } from 'generated/prisma';
+import { v4 } from 'uuid';
 import { PrismaService } from '../prisma.service';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { ResponseService } from '../common/services/response.service';
 import { parseSlug } from '../common/utils/validate.utils';
+import { createSlug } from '../common/utils/slugify.utils';
 import { toBooleanFulltextQuery } from '../common/utils/fulltext-query';
+import { CreateGameDto } from './dto/create-game.dto';
+import { UpdateGameDto } from './dto/update-game.dto';
+import { CreateGameGenreDto } from './dto/create-game-genre.dto';
+import { CreateGameSeriesDto } from './dto/create-game-series.dto';
 
 const GAME_INCLUDE = {
   images: { orderBy: { order: 'asc' as const }, include: { file: true } },
@@ -130,6 +136,100 @@ export class GamesService {
     return this.prismaService.gameSeries.findMany({
       orderBy: { title: 'asc' },
     });
+  }
+
+  async create(dto: CreateGameDto) {
+    const { imageFileIds = [], genreIds = [], ...rest } = dto;
+
+    if (imageFileIds.length > 3) {
+      throw new BadRequestException('У игры может быть не более 3 изображений');
+    }
+
+    const slug = createSlug(dto.title, dto.slug);
+    const game = await this.prismaService.game.create({
+      data: {
+        id: v4(),
+        ...rest,
+        slug,
+      },
+    });
+
+    await this.syncImages(game.id, imageFileIds);
+    await this.syncGenres(game.id, genreIds);
+
+    return this.findOne(game.id);
+  }
+
+  async update(id: string, dto: UpdateGameDto) {
+    const { imageFileIds, genreIds, ...rest } = dto;
+
+    if (imageFileIds && imageFileIds.length > 3) {
+      throw new BadRequestException('У игры может быть не более 3 изображений');
+    }
+
+    if (rest.title && !rest.slug) {
+      rest.slug = createSlug(rest.title);
+    }
+
+    await this.prismaService.game.update({
+      where: { id },
+      data: { ...rest },
+    });
+
+    if (imageFileIds) {
+      await this.syncImages(id, imageFileIds);
+    }
+    if (genreIds) {
+      await this.syncGenres(id, genreIds);
+    }
+
+    return this.findOne(id);
+  }
+
+  createGenre(dto: CreateGameGenreDto) {
+    return this.prismaService.gameGenre.create({
+      data: { id: v4(), ...dto },
+    });
+  }
+
+  updateGenre(id: string, dto: Partial<CreateGameGenreDto>) {
+    return this.prismaService.gameGenre.update({
+      where: { id },
+      data: dto,
+    });
+  }
+
+  createSeries(dto: CreateGameSeriesDto) {
+    return this.prismaService.gameSeries.create({
+      data: { id: v4(), slug: createSlug(dto.title), ...dto },
+    });
+  }
+
+  updateSeries(id: string, dto: Partial<CreateGameSeriesDto>) {
+    return this.prismaService.gameSeries.update({
+      where: { id },
+      data: dto,
+    });
+  }
+
+  private async syncImages(gameId: string, fileIds: string[]) {
+    await this.prismaService.gameImage.deleteMany({ where: { gameId } });
+
+    for (let order = 0; order < fileIds.length; order++) {
+      await this.prismaService.gameImage.create({
+        data: { id: v4(), gameId, fileId: fileIds[order], order },
+      });
+    }
+  }
+
+  private async syncGenres(gameId: string, genreIds: string[]) {
+    await this.prismaService.genresOnGames.deleteMany({ where: { gameId } });
+
+    for (const genreId of genreIds) {
+      await this.prismaService.genresOnGames.create({
+        data: { gameId, genreId },
+      });
+    }
   }
 
   private buildWhere(filters: {
