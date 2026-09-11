@@ -24,6 +24,7 @@ import { mapGameStatus } from './utils/map-game-status.utils';
 import { extractSeriesBaseTitle } from './utils/extract-series-base-title.utils';
 import { groupBySeriesTitle } from './utils/group-by-series.utils';
 import { normalizeGameTitle } from './utils/normalize-game-title.utils';
+import { extractExternalIdSortNumber } from './utils/extract-external-id-sort-number.utils';
 
 const GAME_INCLUDE = {
   images: { orderBy: { order: 'asc' as const }, include: { file: true } },
@@ -44,8 +45,8 @@ export class GamesService {
     const {
       page = 1,
       limit = 10,
-      sortBy = 'title',
-      sortOrder = 'asc',
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
       search = '',
       genres = [],
       players,
@@ -262,6 +263,39 @@ export class GamesService {
     }
 
     return { totalGames: games.length, seriesCreated, gamesGrouped };
+  }
+
+  /**
+   * Задаёт мигрированным играм искусственный, но стабильно упорядоченный
+   * createdAt — источник не хранит настоящую дату добавления, а без этого
+   * "сортировка по дате добавления" на 668 играх, перенесённых в одну и ту
+   * же минуту, ничего не даёт. Ключ сортировки — {@link extractExternalIdSortNumber}
+   * (не точная хронология, только относительный порядок). Игр без
+   * `externalId` (созданы вручную в админке) не касается — у них уже есть
+   * настоящий createdAt.
+   */
+  async backfillCreatedAtFromExternalId() {
+    const games = await this.prismaService.game.findMany({
+      where: { externalId: { not: null } },
+      select: { id: true, externalId: true },
+    });
+
+    const sorted = [...games].sort(
+      (a, b) =>
+        extractExternalIdSortNumber(a.externalId) -
+        extractExternalIdSortNumber(b.externalId),
+    );
+
+    const baseTime = new Date('2015-01-01T00:00:00Z').getTime();
+
+    for (let i = 0; i < sorted.length; i++) {
+      await this.prismaService.game.update({
+        where: { id: sorted[i].id },
+        data: { createdAt: new Date(baseTime + i * 60_000) },
+      });
+    }
+
+    return { total: sorted.length };
   }
 
   private async syncImages(gameId: string, fileIds: string[]) {

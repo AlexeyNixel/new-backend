@@ -32,6 +32,12 @@ export class GamesController {
     return this.gamesService.regroupSeries();
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Get('backfill-created-at')
+  backfillCreatedAt() {
+    return this.gamesService.backfillCreatedAtFromExternalId();
+  }
+
   @Get('genres')
   findAllGenres() {
     return this.gamesService.findAllGenres();
