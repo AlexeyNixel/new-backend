@@ -117,6 +117,7 @@ model File {
   mapPoints      MapPoint[]
   gameImages     GameImage[]
   gameRulesFor   Game[]            @relation("GameRulesFile")
+  comicImages    ComicImage[]
 
   @@map("files")
 }
@@ -361,6 +362,75 @@ model GameSeries {
   games       Game[]
 
   @@map("game_series")
+}
+
+model Comic {
+  id           String            @id @default(uuid())
+  slug         String            @unique @db.VarChar(300)
+  title        String            @db.VarChar(256)
+  description  String?           @db.LongText
+  content      String?           @db.LongText
+  author       String?           @db.VarChar(200)
+  illustrator  String?           @db.VarChar(200)
+  volumeNumber Int?
+  year         Int?
+  ageRating    Int?
+  externalLink String?           @db.VarChar(500)
+  isDeleted    Boolean           @default(false)
+  seriesId     String?
+  series       ComicSeries?      @relation(fields: [seriesId], references: [id])
+  images       ComicImage[]
+  genres       GenresOnComics[]
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@index([seriesId])
+  @@map("comics")
+}
+
+model ComicImage {
+  id      String @id @default(uuid())
+  comicId String
+  fileId  String
+  order   Int    @default(0)
+  comic   Comic  @relation(fields: [comicId], references: [id], onDelete: Cascade)
+  file    File   @relation(fields: [fileId], references: [id])
+
+  @@unique([comicId, fileId])
+  @@index([comicId])
+  @@index([fileId], map: "comic_images_fileId_fkey")
+  @@map("comic_images")
+}
+
+model ComicGenre {
+  id     String           @id @default(uuid())
+  tag    String           @unique @db.VarChar(32)
+  title  String           @db.VarChar(64)
+  comics GenresOnComics[]
+
+  @@map("comic_genres")
+}
+
+model GenresOnComics {
+  comicId String
+  genreId String
+  comic   Comic      @relation(fields: [comicId], references: [id])
+  genre   ComicGenre @relation(fields: [genreId], references: [id])
+
+  @@id([comicId, genreId])
+  @@index([genreId], map: "genres_on_comics_genreId_fkey")
+  @@map("genres_on_comics")
+}
+
+model ComicSeries {
+  id          String   @id @default(uuid())
+  slug        String   @unique @db.VarChar(300)
+  title       String   @db.VarChar(256)
+  description String?  @db.VarChar(1024)
+  createdAt   DateTime @default(now())
+  comics      Comic[]
+
+  @@map("comic_series")
 }
 
 enum FileType {
