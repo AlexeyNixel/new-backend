@@ -1,0 +1,116 @@
+import { Injectable } from '@nestjs/common';
+import { Prisma } from 'generated/prisma';
+import { PrismaService } from '../prisma.service';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { ResponseService } from '../common/services/response.service';
+import { parseSlug } from '../common/utils/validate.utils';
+
+const COMIC_INCLUDE = {
+  images: { orderBy: { order: 'asc' as const }, include: { file: true } },
+  genres: { select: { genre: true } },
+  series: true,
+} satisfies Prisma.ComicInclude;
+
+@Injectable()
+export class ComicsService {
+  constructor(
+    private prismaService: PrismaService,
+    private responseService: ResponseService,
+  ) {}
+
+  async findAll(paginationQuery: PaginationQueryDto) {
+    const {
+      page = 1,
+      limit = 10,
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+      search = '',
+      genres = [],
+      seriesId,
+      ageMax,
+      yearFrom,
+      yearTo,
+    } = paginationQuery;
+
+    const skip = (page - 1) * limit;
+
+    let genreIds: string[] = [];
+    if (typeof genres === 'string') {
+      genreIds = [genres];
+    } else if (typeof genres === 'object') {
+      genreIds = [...genres];
+    }
+
+    const where = this.buildWhere({
+      search,
+      genreIds,
+      seriesId,
+      ageMax,
+      yearFrom,
+      yearTo,
+    });
+
+    const [comics, total] = await Promise.all([
+      this.prismaService.comic.findMany({
+        where,
+        orderBy: { [sortBy]: sortOrder },
+        skip,
+        take: +limit,
+        include: COMIC_INCLUDE,
+      }),
+      this.prismaService.comic.count({ where }),
+    ]);
+
+    return this.responseService.paginated(comics, total, page, limit);
+  }
+
+  async findOne(idOrSlug: string) {
+    const comic = await this.prismaService.comic.findUnique({
+      where: { ...parseSlug(idOrSlug) },
+      include: COMIC_INCLUDE,
+    });
+
+    if (!comic) {
+      return { message: `Комикс по slug или id '${idOrSlug}' не найден` };
+    }
+
+    return comic;
+  }
+
+  findAllGenres() {
+    return this.prismaService.comicGenre.findMany({
+      orderBy: { title: 'asc' },
+    });
+  }
+
+  findAllSeries() {
+    return this.prismaService.comicSeries.findMany({
+      orderBy: { title: 'asc' },
+    });
+  }
+
+  private buildWhere(filters: {
+    search?: string;
+    genreIds: string[];
+    seriesId?: string;
+    ageMax?: number;
+    yearFrom?: number;
+    yearTo?: number;
+  }): Prisma.ComicWhereInput {
+    const { search, genreIds, seriesId, ageMax, yearFrom, yearTo } = filters;
+
+    return {
+      isDeleted: false,
+      seriesId: seriesId || undefined,
+      title: search ? { contains: search } : undefined,
+      ageRating: ageMax !== undefined ? { lte: +ageMax } : undefined,
+      year: {
+        gte: yearFrom !== undefined ? +yearFrom : undefined,
+        lte: yearTo !== undefined ? +yearTo : undefined,
+      },
+      AND: genreIds.map((genreId) => ({
+        genres: { some: { genreId } },
+      })),
+    };
+  }
+}

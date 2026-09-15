@@ -20,6 +20,7 @@ import { BookCategoryModule } from './book-category/book-category.module';
 import { NotificationModule } from './notification/notification.module';
 import { PageModule } from './page/page.module';
 import { GamesModule } from './games/games.module';
+import { ComicsModule } from './comics/comics.module';
 import { AchievementsModule } from './achievements/achievements.module';
 import { ClubsModule } from './clubs/clubs.module';
 import { MapPointModule } from './map-point/map-point.module';
@@ -61,6 +62,7 @@ import { MapPointModule } from './map-point/map-point.module';
     NotificationModule,
     PageModule,
     GamesModule,
+    ComicsModule,
     AchievementsModule,
     ClubsModule,
     MapPointModule,
