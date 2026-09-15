@@ -22,6 +22,9 @@ import {
 } from './utils/parse-game-fields.utils';
 import { mapGameStatus } from './utils/map-game-status.utils';
 import { extractSeriesBaseTitle } from './utils/extract-series-base-title.utils';
+import { groupBySeriesTitle } from './utils/group-by-series.utils';
+import { normalizeGameTitle } from './utils/normalize-game-title.utils';
+import { extractExternalIdSortNumber } from './utils/extract-external-id-sort-number.utils';
 
 const GAME_INCLUDE = {
   images: { orderBy: { order: 'asc' as const }, include: { file: true } },
@@ -42,8 +45,8 @@ export class GamesService {
     const {
       page = 1,
       limit = 10,
-      sortBy = 'title',
-      sortOrder = 'asc',
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
       search = '',
       genres = [],
       players,
@@ -222,6 +225,77 @@ export class GamesService {
       where: { id },
       data: dto,
     });
+  }
+
+  /**
+   * Пересчитывает серии для ВСЕХ игр по актуальной эвристике
+   * {@link groupBySeriesTitle} — удаляет текущие GameSeries и привязки,
+   * группирует заново. Нужен, когда правится сама эвристика (новый
+   * разделитель и т.п.) и старые данные надо перегруппировать, а не
+   * только новые — migrate() группирует лишь то, что переносит сам.
+   */
+  async regroupSeries() {
+    const games = await this.prismaService.game.findMany({
+      where: { isDeleted: false },
+      select: { id: true, title: true },
+    });
+
+    const groups = groupBySeriesTitle(games);
+
+    await this.prismaService.game.updateMany({ data: { seriesId: null } });
+    await this.prismaService.gameSeries.deleteMany({});
+
+    let seriesCreated = 0;
+    let gamesGrouped = 0;
+
+    for (const rows of groups.values()) {
+      const title = extractSeriesBaseTitle(rows[0].title) as string;
+      const series = await this.prismaService.gameSeries.create({
+        data: { id: v4(), title, slug: createSlug(title, undefined, true) },
+      });
+      seriesCreated++;
+
+      await this.prismaService.game.updateMany({
+        where: { id: { in: rows.map((row) => row.id) } },
+        data: { seriesId: series.id },
+      });
+      gamesGrouped += rows.length;
+    }
+
+    return { totalGames: games.length, seriesCreated, gamesGrouped };
+  }
+
+  /**
+   * Задаёт мигрированным играм искусственный, но стабильно упорядоченный
+   * createdAt — источник не хранит настоящую дату добавления, а без этого
+   * "сортировка по дате добавления" на 668 играх, перенесённых в одну и ту
+   * же минуту, ничего не даёт. Ключ сортировки — {@link extractExternalIdSortNumber}
+   * (не точная хронология, только относительный порядок). Игр без
+   * `externalId` (созданы вручную в админке) не касается — у них уже есть
+   * настоящий createdAt.
+   */
+  async backfillCreatedAtFromExternalId() {
+    const games = await this.prismaService.game.findMany({
+      where: { externalId: { not: null } },
+      select: { id: true, externalId: true },
+    });
+
+    const sorted = [...games].sort(
+      (a, b) =>
+        extractExternalIdSortNumber(a.externalId) -
+        extractExternalIdSortNumber(b.externalId),
+    );
+
+    const baseTime = new Date('2015-01-01T00:00:00Z').getTime();
+
+    for (let i = 0; i < sorted.length; i++) {
+      await this.prismaService.game.update({
+        where: { id: sorted[i].id },
+        data: { createdAt: new Date(baseTime + i * 60_000) },
+      });
+    }
+
+    return { total: sorted.length };
   }
 
   private async syncImages(gameId: string, fileIds: string[]) {
@@ -457,10 +531,10 @@ export class GamesService {
     );
 
     const gDataTitles = new Set(
-      gData.map((row) => row.g_name.trim().toLowerCase()),
+      gData.map((row) => normalizeGameTitle(row.g_name)),
     );
     const glListUnique = glList.filter(
-      (row) => !gDataTitles.has(row.title.trim().toLowerCase()),
+      (row) => !gDataTitles.has(normalizeGameTitle(row.title)),
     );
 
     const normalized: NormalizedGameRow[] = [
@@ -468,28 +542,19 @@ export class GamesService {
       ...glListUnique.map((row) => this.normalizeGlList(row)),
     ];
 
-    // Группировка в серии: часть названия до ":" встречается у >= 2 игр.
-    const seriesGroups = new Map<string, NormalizedGameRow[]>();
-    for (const row of normalized) {
-      const base = extractSeriesBaseTitle(row.title);
-      if (!base) continue;
+    const seriesGroups = groupBySeriesTitle(normalized);
+    const seriesIdByExternalId = new Map<string, string>();
 
-      const key = base.toLowerCase();
-      const group = seriesGroups.get(key) ?? [];
-      group.push(row);
-      seriesGroups.set(key, group);
-    }
-
-    const seriesIdByKey = new Map<string, string>();
-    for (const [key, rows] of seriesGroups) {
-      if (rows.length < 2) continue;
-
+    for (const rows of seriesGroups.values()) {
       const title = extractSeriesBaseTitle(rows[0].title) as string;
       const series = await this.prismaService.gameSeries.create({
         data: { id: v4(), title, slug: createSlug(title, undefined, true) },
       });
-      seriesIdByKey.set(key, series.id);
       seriesCreated++;
+
+      for (const row of rows) {
+        seriesIdByExternalId.set(row.externalId, series.id);
+      }
     }
 
     const genreByTag = new Map(
@@ -509,8 +574,7 @@ export class GamesService {
           continue;
         }
 
-        const seriesKey = extractSeriesBaseTitle(row.title)?.toLowerCase();
-        const seriesId = seriesKey ? seriesIdByKey.get(seriesKey) : undefined;
+        const seriesId = seriesIdByExternalId.get(row.externalId);
 
         const game = await this.prismaService.game.create({
           data: {
