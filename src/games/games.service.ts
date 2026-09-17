@@ -57,6 +57,7 @@ export class GamesService {
       yearTo,
       seriesId,
       availableOnly,
+      isDeleted,
     } = paginationQuery;
 
     const skip = (page - 1) * limit;
@@ -112,6 +113,7 @@ export class GamesService {
       yearTo,
       seriesId,
       availableOnly,
+      isDeleted,
     });
 
     const [games, total] = await Promise.all([
@@ -328,6 +330,7 @@ export class GamesService {
     yearTo?: number;
     seriesId?: string;
     availableOnly?: boolean;
+    isDeleted?: boolean;
   }): Prisma.GameWhereInput {
     const {
       genreIds,
@@ -339,10 +342,11 @@ export class GamesService {
       yearTo,
       seriesId,
       availableOnly,
+      isDeleted,
     } = filters;
 
     return {
-      isDeleted: false,
+      isDeleted: isDeleted ? undefined : false,
       seriesId: seriesId || undefined,
       playerMin: players !== undefined ? { lte: +players } : undefined,
       playerMax: players !== undefined ? { gte: +players } : undefined,
