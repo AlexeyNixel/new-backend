@@ -7,18 +7,23 @@ import {
   Param,
   Query,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { MapPointService } from './map-point.service';
 import { CreateMapPointDto } from './dto/create-map-point.dto';
 import { UpdateMapPointDto } from './dto/update-map-point.dto';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { Audited } from '../common/decorators/audited.decorator';
+import { AuditInterceptor } from '../common/interceptors/audit.interceptor';
 
 @Controller('map-point')
 export class MapPointController {
   constructor(private readonly mapPointService: MapPointService) {}
 
   @UseGuards(JwtAuthGuard)
+  @UseInterceptors(AuditInterceptor)
+  @Audited('MapPoint')
   @Post()
   create(@Body() createMapPointDto: CreateMapPointDto) {
     return this.mapPointService.create(createMapPointDto);
@@ -35,6 +40,8 @@ export class MapPointController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @UseInterceptors(AuditInterceptor)
+  @Audited('MapPoint')
   @Patch(':id')
   update(
     @Param('id') id: string,
