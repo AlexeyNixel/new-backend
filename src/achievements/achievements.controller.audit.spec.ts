@@ -1,3 +1,5 @@
+// Спек читает Reflector-метадату с методов на прототипе контроллера (не вызывая их) — намеренный паттерн для метадата-тестов, а не баг.
+/* eslint-disable @typescript-eslint/unbound-method, @typescript-eslint/no-unsafe-assignment */
 // achievements.service.ts импортирует PrismaService через bare-путь
 // 'src/prisma.service' (не '../prisma.service', как остальные) — тот же
 // bare-путь-не-резолвится-в-jest эффект, мокаем оба варианта специфики пути.

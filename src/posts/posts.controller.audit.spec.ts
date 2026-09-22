@@ -1,3 +1,5 @@
+// Спек читает Reflector-метадату с методов на прототипе контроллера (не вызывая их) — намеренный паттерн для метадата-тестов, а не баг.
+/* eslint-disable @typescript-eslint/unbound-method, @typescript-eslint/no-unsafe-assignment */
 // PostsController тянет PostsService -> PrismaService и Prisma напрямую из
 // generated/prisma — bare-путь не резолвится в jest. Подменяем заглушками.
 // uuid@13 — ESM-only пакет, ts-jest не умеет его парсить без транспиляции — тоже мокаем.

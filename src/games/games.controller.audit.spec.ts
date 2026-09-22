@@ -1,3 +1,5 @@
+// Спек читает Reflector-метадату с методов на прототипе контроллера (не вызывая их) — намеренный паттерн для метадата-тестов, а не баг.
+/* eslint-disable @typescript-eslint/unbound-method */
 jest.mock('../prisma.service', () => ({ PrismaService: class {} }));
 jest.mock('generated/prisma', () => ({}), { virtual: true });
 
