@@ -7,12 +7,15 @@ import {
   Param,
   Query,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { MainSliderService } from './main-slider.service';
 import { CreateMainSliderDto } from './dto/create-main-slider.dto';
 import { UpdateMainSliderDto } from './dto/update-main-slider.dto';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { Audited } from '../common/decorators/audited.decorator';
+import { AuditInterceptor } from '../common/interceptors/audit.interceptor';
 
 @Controller('main-slider')
 export class MainSliderController {
@@ -25,6 +28,8 @@ export class MainSliderController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @UseInterceptors(AuditInterceptor)
+  @Audited('MainSliderSlide')
   @Post()
   create(@Body() createMainSliderDto: CreateMainSliderDto) {
     return this.mainSliderService.create(createMainSliderDto);
@@ -41,6 +46,8 @@ export class MainSliderController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @UseInterceptors(AuditInterceptor)
+  @Audited('MainSliderSlide')
   @Patch(':id')
   update(
     @Param('id') id: string,
