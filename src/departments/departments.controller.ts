@@ -7,12 +7,15 @@ import {
   Param,
   Query,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { DepartmentsService } from './departments.service';
 import { CreateDepartmentDto } from './dto/create-department.dto';
 import { UpdateDepartmentDto } from './dto/update-department.dto';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { Audited } from '../common/decorators/audited.decorator';
+import { AuditInterceptor } from '../common/interceptors/audit.interceptor';
 
 @Controller('departments')
 export class DepartmentsController {
@@ -25,6 +28,8 @@ export class DepartmentsController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @UseInterceptors(AuditInterceptor)
+  @Audited('Department')
   @Post()
   create(@Body() createDepartmentDto: CreateDepartmentDto) {
     return this.departmentsService.create(createDepartmentDto);
@@ -41,6 +46,8 @@ export class DepartmentsController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @UseInterceptors(AuditInterceptor)
+  @Audited('Department')
   @Patch(':id')
   update(
     @Param('id') id: string,
