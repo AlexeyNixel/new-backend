@@ -10,11 +10,12 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  username  String   @unique
+  id        String     @id @default(uuid())
+  username  String     @unique
   password  String
   name      String?
-  createdAt DateTime @default(now())
+  createdAt DateTime   @default(now())
+  auditLogs AuditLog[]
 
   @@map("users")
 }
@@ -448,4 +449,23 @@ enum NotificationType {
   warning
   error
   festive
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+}
+
+model AuditLog {
+  id         String      @id @default(uuid())
+  entityType String      @db.VarChar(100)
+  entityId   String
+  action     AuditAction
+  userId     String?
+  user       User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt  DateTime    @default(now())
+
+  @@index([entityType, entityId])
+  @@index([userId])
+  @@map("audit_logs")
 }

@@ -24,6 +24,7 @@ import { ComicsModule } from './comics/comics.module';
 import { AchievementsModule } from './achievements/achievements.module';
 import { ClubsModule } from './clubs/clubs.module';
 import { MapPointModule } from './map-point/map-point.module';
+import { AuditLogModule } from './audit-log/audit-log.module';
 
 @Module({
   imports: [
@@ -66,6 +67,7 @@ import { MapPointModule } from './map-point/map-point.module';
     AchievementsModule,
     ClubsModule,
     MapPointModule,
+    AuditLogModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],
