@@ -7,6 +7,7 @@ import {
   Post,
   Query,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ComicsService } from './comics.service';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
@@ -15,6 +16,8 @@ import { UpdateComicDto } from './dto/update-comic.dto';
 import { CreateComicGenreDto } from './dto/create-comic-genre.dto';
 import { CreateComicSeriesDto } from './dto/create-comic-series.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { Audited } from '../common/decorators/audited.decorator';
+import { AuditInterceptor } from '../common/interceptors/audit.interceptor';
 
 @Controller('comics')
 export class ComicsController {
@@ -26,12 +29,16 @@ export class ComicsController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @UseInterceptors(AuditInterceptor)
+  @Audited('ComicGenre')
   @Post('genres')
   createGenre(@Body() dto: CreateComicGenreDto) {
     return this.comicsService.createGenre(dto);
   }
 
   @UseGuards(JwtAuthGuard)
+  @UseInterceptors(AuditInterceptor)
+  @Audited('ComicGenre')
   @Patch('genres/:id')
   updateGenre(
     @Param('id') id: string,
@@ -46,12 +53,16 @@ export class ComicsController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @UseInterceptors(AuditInterceptor)
+  @Audited('ComicSeries')
   @Post('series')
   createSeries(@Body() dto: CreateComicSeriesDto) {
     return this.comicsService.createSeries(dto);
   }
 
   @UseGuards(JwtAuthGuard)
+  @UseInterceptors(AuditInterceptor)
+  @Audited('ComicSeries')
   @Patch('series/:id')
   updateSeries(
     @Param('id') id: string,
@@ -66,6 +77,8 @@ export class ComicsController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @UseInterceptors(AuditInterceptor)
+  @Audited('Comic')
   @Post()
   create(@Body() dto: CreateComicDto) {
     return this.comicsService.create(dto);
@@ -77,6 +90,8 @@ export class ComicsController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @UseInterceptors(AuditInterceptor)
+  @Audited('Comic')
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: UpdateComicDto) {
     return this.comicsService.update(id, dto);
