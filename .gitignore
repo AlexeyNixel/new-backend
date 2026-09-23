@@ -46,6 +46,10 @@ lerna-debug.log*
 .temp
 .tmp
 
+# SSL-сертификаты и приватные ключи — никогда не коммитить
+/certs/*
+!/certs/.gitkeep
+
 # Runtime data
 pids
 *.pid
