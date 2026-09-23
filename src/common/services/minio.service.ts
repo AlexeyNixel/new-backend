@@ -140,6 +140,35 @@ export class MinioService {
     };
   }
 
+  /**
+   * Кладёт объект по заданному ключу — всегда в бакет сервиса (MINIO_BUCKET_NAME).
+   * Используется для уменьшенных копий картинок. Возвращает путь `/<bucket>/<key>`,
+   * в том же формате, что хранится в File.path.
+   */
+  async putObjectAt(key: string, buffer: Buffer, contentType: string) {
+    await this.minioClient.putObject(
+      this.bucketName,
+      key,
+      buffer,
+      buffer.length,
+      { 'Content-Type': contentType },
+    );
+    return `/${this.bucketName}/${key}`;
+  }
+
+  /**
+   * Читает объект по пути из File.path (`/<bucket>/<key>`). Только чтение —
+   * исходные файлы (в т.ч. бакет старого сайта `site`) не изменяются.
+   */
+  async getObjectByPath(path: string): Promise<Buffer> {
+    const [bucket, ...keyParts] = path.replace(/^\/+/, '').split('/');
+    const stream = await this.minioClient.getObject(bucket, keyParts.join('/'));
+
+    const chunks: Buffer[] = [];
+    for await (const chunk of stream) chunks.push(chunk as Buffer);
+    return Buffer.concat(chunks);
+  }
+
   private getContentType(filename: string): string {
     const extension = filename.toLowerCase().split('.').pop() || '';
 

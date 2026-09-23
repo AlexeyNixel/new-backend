@@ -7,6 +7,15 @@ import { DataSource } from 'typeorm';
 import * as crypto from 'crypto';
 import { ConfigService } from '@nestjs/config';
 import { v4 } from 'uuid';
+import { Prisma } from 'generated/prisma';
+
+export interface BackfillStats {
+  processed: number;
+  /** Сколько копий (файлов) создано */
+  created: number;
+  failed: number;
+  errors: Array<{ id: string; path: string; error: string }>;
+}
 
 export interface UploadImageResult {
   url: string;
@@ -88,16 +97,144 @@ export class FilesService {
         height: processedImage.height,
       };
 
-      return await this.saveFileToDatabase(
+      const savedFile = await this.saveFileToDatabase(
         {
           ...file,
           originalname: decodedOriginalName,
         },
         resultWithDimensions,
       );
+
+      // Копии для srcset. Ошибка нарезки не должна ломать саму загрузку —
+      // такие файлы потом догонит backfillVariants()
+      try {
+        return await this.createVariants(savedFile, processedImage.buffer);
+      } catch (error) {
+        console.error('[files] не удалось создать копии картинки', error);
+        return savedFile;
+      }
     } catch (error) {
       console.log(error);
     }
+  }
+
+  /**
+   * Создаёт уменьшенные копии картинки (400/800px, WebP) и сохраняет их пути в File.variants.
+   * Копии всегда пишутся в бакет сервиса под префиксом `variants/` — исходный файл
+   * (в т.ч. из бакета старого сайта) только читается и не изменяется.
+   */
+  async createVariants(
+    file: { id: string; path: string; width: number | null },
+    source?: Buffer,
+  ) {
+    const buffer =
+      source ?? (await this.minioService.getObjectByPath(file.path));
+    const variants = await this.imageProcessing.createVariants(buffer);
+
+    const paths: Record<string, string> = {};
+    for (const variant of variants) {
+      paths[variant.width] = await this.minioService.putObjectAt(
+        this.variantKey(file.path, variant.width),
+        variant.buffer,
+        'image/webp',
+      );
+    }
+
+    // У перенесённых со старой БД файлов размеры не сохранены (0) — заполняем заодно
+    const dimensions = file.width
+      ? {}
+      : await this.imageProcessing.getDimensions(buffer);
+
+    return this.prismaService.file.update({
+      where: { id: file.id },
+      data: { variants: paths, ...dimensions },
+    });
+  }
+
+  /**
+   * Догоняет копии для уже загруженных картинок, которые используются как превью/обложки
+   * (посты, книги, подборки, игры, комиксы, слайды, клубы, отделы).
+   * Идёт одним проходом по id, поэтому ошибочные файлы не зацикливают обработку;
+   * повторный запуск подхватит только файлы без копий (variants = null).
+   */
+  async backfillVariants(
+    options: {
+      batchSize?: number;
+      concurrency?: number;
+      limit?: number;
+      /** Пересоздать копии и для уже обработанных файлов (например, после смены набора ширин) */
+      force?: boolean;
+      onProgress?: (stats: BackfillStats) => void;
+    } = {},
+  ): Promise<BackfillStats> {
+    const { batchSize = 100, concurrency = 4, limit = Infinity } = options;
+    const stats: BackfillStats = {
+      processed: 0,
+      created: 0,
+      failed: 0,
+      errors: [],
+    };
+    let cursor: string | undefined;
+
+    while (stats.processed < limit) {
+      const files = await this.prismaService.file.findMany({
+        where: {
+          type: 'IMAGE',
+          ...(options.force ? {} : { variants: { equals: Prisma.DbNull } }),
+          mimeType: { in: ['image/jpeg', 'image/png', 'image/webp'] },
+          OR: [
+            { posts: { some: {} } },
+            { books: { some: {} } },
+            { BookCollection: { some: {} } },
+            { gameImages: { some: {} } },
+            { comicImages: { some: {} } },
+            { slide: { some: {} } },
+            { club: { some: {} } },
+            { departments: { some: {} } },
+          ],
+          ...(cursor ? { id: { gt: cursor } } : {}),
+        },
+        select: { id: true, path: true, width: true },
+        orderBy: { id: 'asc' },
+        take: Math.min(batchSize, limit - stats.processed),
+      });
+      if (!files.length) break;
+      cursor = files[files.length - 1].id;
+
+      for (let i = 0; i < files.length; i += concurrency) {
+        await Promise.all(
+          files.slice(i, i + concurrency).map(async (file) => {
+            try {
+              const updated = await this.createVariants(file);
+              stats.created += Object.keys(
+                (updated.variants as Record<string, string>) ?? {},
+              ).length;
+            } catch (error) {
+              stats.failed++;
+              stats.errors.push({
+                id: file.id,
+                path: file.path,
+                error: error instanceof Error ? error.message : String(error),
+              });
+            } finally {
+              stats.processed++;
+            }
+          }),
+        );
+      }
+
+      options.onProgress?.(stats);
+    }
+
+    return stats;
+  }
+
+  /** `/site/image/2024/.../uuid.jpeg` → `variants/site/image/2024/.../uuid-w400.webp` */
+  private variantKey(originalPath: string, width: number) {
+    const withoutExt = originalPath
+      .replace(/^\/+/, '')
+      .replace(/\.[^./]+$/, '');
+    return `variants/${withoutExt}-w${width}.webp`;
   }
 
   async uploadExhibition(file: Express.Multer.File) {
