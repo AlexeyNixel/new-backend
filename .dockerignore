@@ -1,0 +1,24 @@
+# Зависимости и артефакты ставятся/собираются внутри образа
+node_modules
+dist
+generated
+upload
+
+# Секреты и сертификаты — в образ не попадают, переменные задаются в Dokploy
+.env
+.env.*
+certs
+
+# Всё, что не нужно для сборки
+.git
+.github
+.idea
+.vscode
+.claude
+temp
+reports
+docs
+test
+*.log
+Dockerfile
+.dockerignore
