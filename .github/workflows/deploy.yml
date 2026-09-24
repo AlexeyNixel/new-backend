@@ -1,0 +1,62 @@
+name: CI/CD
+
+# Сборку и запуск делает Dokploy (образ по Dockerfile, http://192.168.0.35:3000).
+# Уведомления GitHub о push до Dokploy не доходят — он доступен только из локальной сети,
+# поэтому деплой запускает этот workflow через deploy-webhook приложения в Dokploy.
+# Раннер стоит на том же сервере; адрес вебхука с токеном лежит в файле на сервере:
+#   ~/.config/dokploy/backend-deploy-hook (chmod 600), в репозиторий не попадает.
+on:
+  push:
+    branches: [master]
+    paths-ignore:
+      - 'reports/**'
+      - '**.md'
+      - '.claude/**'
+  pull_request:
+    branches: [master]
+
+jobs:
+  # Запускается сразу после push, линт не ждёт: упавшая сборка образа
+  # в Dokploy всё равно оставляет на сервере предыдущую версию
+  deploy:
+    name: Deploy (Dokploy)
+    if: github.event_name == 'push'
+    runs-on: self-hosted
+
+    steps:
+      - name: Trigger Dokploy deploy
+        env:
+          COMMIT_SHA: ${{ github.sha }}
+          COMMIT_REF: ${{ github.ref }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          set -euo pipefail
+          HOOK=$(cat "$HOME/.config/dokploy/backend-deploy-hook")
+          # Тело в формате GitHub push-события: Dokploy сверяет ветку и берёт заголовок из коммита
+          PAYLOAD=$(python3 -c 'import json, os; print(json.dumps({"ref": os.environ["COMMIT_REF"], "after": os.environ["COMMIT_SHA"], "head_commit": {"id": os.environ["COMMIT_SHA"], "message": os.environ.get("COMMIT_MESSAGE", "")}}))')
+          curl --fail-with-body -sS -X POST "$HOOK" \
+            -H 'Content-Type: application/json' \
+            -H 'X-GitHub-Event: push' \
+            -d "$PAYLOAD"
+          echo
+          echo "Деплой запущен — ход сборки и логи в Dokploy"
+
+  lint:
+    name: Lint
+    runs-on: self-hosted
+    timeout-minutes: 15
+    # В коде есть накопленные ошибки линта (на 2026-09-24 — 106, в основном no-unsafe-*).
+    # Пока они не исправлены, линт только сообщает о проблемах и не делает проверку красной.
+    # Когда ошибок станет 0 — удалить эту строку, чтобы новые ошибки блокировали PR.
+    continue-on-error: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        # postinstall выполняет `prisma generate` — без клиента Prisma линт видит `any`
+        run: npm ci --no-audit --no-fund
+
+      - name: Lint
+        run: npx eslint "{src,apps,libs,test}/**/*.ts"
