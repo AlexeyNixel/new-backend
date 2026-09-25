@@ -403,6 +403,7 @@ export class PostsService {
     const oldPost: OldPost[] = await this.sourceDB.query('SELECT * FROM Entry');
 
     let migrated = 0;
+    let previewsFixed = 0;
     let skipped = 0;
     const errors: Array<{ id: string; slug: string; error: string }> = [];
 
@@ -412,16 +413,30 @@ export class PostsService {
           where: { id: post.id },
         });
 
-        if (existing) {
-          skipped++;
-          continue;
-        }
-
         const previewFileExists =
           !!post.fileId &&
           !!(await this.prismaService.file.findUnique({
             where: { id: post.fileId },
           }));
+
+        if (existing) {
+          // Пост перенесли раньше, чем его файл-превью, и поставили заглушку —
+          // когда файл уже перенесён, подставляем настоящее превью.
+          const hasPlaceholder =
+            !existing.previewFileId ||
+            existing.previewFileId === PostsService.DEFAULT_PREVIEW_FILE_ID;
+
+          if (hasPlaceholder && previewFileExists) {
+            await this.prismaService.post.update({
+              where: { id: post.id },
+              data: { previewFileId: post.fileId },
+            });
+            previewsFixed++;
+          } else {
+            skipped++;
+          }
+          continue;
+        }
 
         await this.prismaService.post.create({
           data: {
@@ -454,6 +469,7 @@ export class PostsService {
     return {
       total: oldPost.length,
       migrated,
+      previewsFixed,
       skipped,
       failed: errors.length,
       errors,
@@ -461,16 +477,24 @@ export class PostsService {
   }
 
   async migratePostOnRubric() {
-    const data = await this.sourceDB.query('SELECT * FROM RubricsOnEntries');
-    console.log(data);
-    for (const tag of data) {
-      await this.prismaService.tagsOnPosts.create({
-        data: {
-          postId: tag.entryId,
-          tagId: tag.rubricId,
-        },
-      });
-    }
+    const data: Array<{ entryId: string; rubricId: string; assignedAt: Date }> =
+      await this.sourceDB.query('SELECT * FROM RubricsOnEntries');
+
+    // skipDuplicates — повторный запуск не падает на уже перенесённых связях
+    const { count } = await this.prismaService.tagsOnPosts.createMany({
+      data: data.map((link) => ({
+        postId: link.entryId,
+        tagId: link.rubricId,
+        assignedAt: link.assignedAt,
+      })),
+      skipDuplicates: true,
+    });
+
+    return {
+      total: data.length,
+      migrated: count,
+      skipped: data.length - count,
+    };
   }
 
   remove(id: number) {
