@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { ImageProcessingService } from '../common/services/image-processing.service';
 import { MinioService } from '../common/services/minio.service';
@@ -8,6 +8,8 @@ import * as crypto from 'crypto';
 import { ConfigService } from '@nestjs/config';
 import { v4 } from 'uuid';
 import { Prisma } from 'generated/prisma';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { ResponseService } from '../common/services/response.service';
 
 export interface BackfillStats {
   processed: number;
@@ -51,6 +53,7 @@ export class FilesService {
     private imageProcessing: ImageProcessingService,
     private minioService: MinioService,
     private configServices: ConfigService,
+    private responseService: ResponseService,
   ) {}
 
   async uploadImage(
@@ -265,6 +268,43 @@ export class FilesService {
     } catch (error) {
       throw new Error(error);
     }
+  }
+
+  async findAllExhibitions(paginationQuery: PaginationQueryDto) {
+    const {
+      page = 1,
+      limit = 10,
+      search,
+      sortOrder = 'desc',
+    } = paginationQuery;
+    const where: Prisma.FileWhereInput = {
+      type: 'EXHIBITION',
+      ...(search && { originalName: { contains: search } }),
+    };
+
+    const [exhibitions, total] = await Promise.all([
+      this.prismaService.file.findMany({
+        where,
+        orderBy: { createdAt: sortOrder === 'asc' ? 'asc' : 'desc' },
+        skip: (+page - 1) * +limit,
+        take: +limit,
+      }),
+      this.prismaService.file.count({ where }),
+    ]);
+
+    return this.responseService.paginated(exhibitions, total, +page, +limit);
+  }
+
+  async findOneExhibition(id: string) {
+    const exhibition = await this.prismaService.file.findFirst({
+      where: { id, type: 'EXHIBITION' },
+    });
+
+    if (!exhibition) {
+      throw new NotFoundException(`Выставка с id ${id} не найдена`);
+    }
+
+    return exhibition;
   }
 
   async uploadDocument(file: Express.Multer.File) {
