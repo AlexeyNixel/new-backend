@@ -9,14 +9,27 @@ import {
   FileTypeValidator,
   Get,
   UseGuards,
+  Param,
+  Query,
 } from '@nestjs/common';
 import { FilesService } from './files.service';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
 @Controller('files')
 export class FilesController {
   constructor(private readonly filesService: FilesService) {}
+
+  @Get('exhibitions')
+  findAllExhibitions(@Query() paginationQuery: PaginationQueryDto) {
+    return this.filesService.findAllExhibitions(paginationQuery);
+  }
+
+  @Get('exhibitions/:id')
+  findOneExhibition(@Param('id') id: string) {
+    return this.filesService.findOneExhibition(id);
+  }
 
   @UseGuards(JwtAuthGuard)
   @Get('migrate')

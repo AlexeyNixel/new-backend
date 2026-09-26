@@ -4,6 +4,7 @@ import { ImageProcessingService } from '../common/services/image-processing.serv
 import { MinioService } from '../common/services/minio.service';
 import { ConfigService } from '@nestjs/config';
 import { FilesController } from './files.controller';
+import { ResponseService } from '../common/services/response.service';
 
 @Module({
   controllers: [FilesController],
@@ -12,6 +13,7 @@ import { FilesController } from './files.controller';
     ImageProcessingService,
     MinioService,
     ConfigService,
+    ResponseService,
   ],
   exports: [FilesService],
 })
