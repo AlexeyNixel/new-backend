@@ -32,15 +32,8 @@ export class BookService {
       },
     });
 
-    if (collections) {
-      for (const collection of collections) {
-        await this.prismaService.bookOnCollection.create({
-          data: {
-            bookId: book.id,
-            collectionsId: collection,
-          },
-        });
-      }
+    if (collections?.length) {
+      await this.syncCollections(book.id, collections);
     }
 
     return book;
@@ -94,7 +87,9 @@ export class BookService {
             collections: {
               select: {
                 id: true,
+                slug: true,
                 label: true,
+                isDeleted: true,
               },
             },
           },
@@ -112,7 +107,9 @@ export class BookService {
       ...book,
       collections: book.collections.map((collection) => ({
         id: collection.collections.id,
+        slug: collection.collections.slug,
         label: collection.collections.label,
+        isDeleted: collection.collections.isDeleted,
       })),
     };
   }
@@ -132,21 +129,7 @@ export class BookService {
     }
 
     if (collections) {
-      await this.prismaService.bookOnCollection.deleteMany({
-        where: {
-          bookId: book.id,
-        },
-      });
-
-      const collectionsData = collections.map((collectionsId) => ({
-        collectionsId: collectionsId,
-        bookId: book.id,
-      }));
-
-      await this.prismaService.bookOnCollection.createMany({
-        data: collectionsData,
-        skipDuplicates: true,
-      });
+      await this.syncCollections(book.id, collections);
     }
 
     if (!updateBookDto.slug?.length) {
@@ -179,6 +162,42 @@ export class BookService {
       } catch (e) {
         console.log(e);
       }
+    }
+  }
+
+  /**
+   * Подборки книги из её формы: убирает из лишних, в новые добавляет в конец.
+   * В подборках, где книга уже есть, её позиция не трогается — порядок,
+   * заданный редактором на странице подборки, сохраняется.
+   */
+  private async syncCollections(bookId: string, collectionIds: string[]) {
+    const wanted = new Set(collectionIds);
+    const current = await this.prismaService.bookOnCollection.findMany({
+      where: { bookId },
+      select: { collectionsId: true },
+    });
+    const currentIds = new Set(current.map((item) => item.collectionsId));
+
+    await this.prismaService.bookOnCollection.deleteMany({
+      where: {
+        bookId,
+        collectionsId: { in: [...currentIds].filter((id) => !wanted.has(id)) },
+      },
+    });
+
+    for (const collectionsId of wanted) {
+      if (currentIds.has(collectionsId)) continue;
+      const last = await this.prismaService.bookOnCollection.aggregate({
+        where: { collectionsId },
+        _max: { position: true },
+      });
+      await this.prismaService.bookOnCollection.create({
+        data: {
+          bookId,
+          collectionsId,
+          position: (last._max.position ?? -1) + 1,
+        },
+      });
     }
   }
 }

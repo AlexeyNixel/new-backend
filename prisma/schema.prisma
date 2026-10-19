@@ -127,17 +127,27 @@ model File {
 }
 
 model Event {
-  id        String   @id @default(uuid())
-  title     String   @db.VarChar(500)
-  content   String   @db.LongText
-  phone     String   @db.VarChar(20)
+  id        String         @id @default(uuid())
+  title     String         @db.VarChar(500)
+  content   String         @db.LongText
+  phone     String         @db.VarChar(20)
   age       Int?
   place     String
   eventTime DateTime
-  createdAt DateTime @default(now())
-  isDeleted Boolean  @default(false)
+  /// Тип события для афиши (цвет плаката и фильтр); null — не указан, сайт угадывает по названию
+  category  EventCategory?
+  createdAt DateTime       @default(now())
+  isDeleted Boolean        @default(false)
 
   @@map("events")
+}
+
+/// Тип события в афише: выбирает редактор в админке
+enum EventCategory {
+  MASTER // мастер-класс, практикум
+  MUSIC // концерт, музыкальная программа
+  GAME // игра, квиз, квест
+  TALK // встреча, лекция, литературная программа
 }
 
 model MainSliderSlide {
@@ -193,7 +203,11 @@ model Book {
 
 model BookCollection {
   id            String             @id @default(uuid())
+  /// Адрес страницы подборки на сайте: /books/collections/<slug>
+  slug          String             @unique @db.VarChar(250)
   label         String
+  /// Короткий текст о подборке для её страницы и карточки
+  description   String?            @db.Text
   isDeleted     Boolean            @default(false)
   previewFileId String?
   createdAt     DateTime           @default(now())
@@ -208,6 +222,8 @@ model BookOnCollection {
   bookId        String
   collectionsId String
   assignedAt    DateTime       @default(now())
+  /// Порядок книги в подборке (задаёт редактор перетаскиванием)
+  position      Int            @default(0)
   book          Book           @relation(fields: [bookId], references: [id])
   collections   BookCollection @relation(fields: [collectionsId], references: [id])
 

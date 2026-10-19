@@ -7,6 +7,7 @@ import { PrismaService } from '../prisma.service';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { ResponseService } from '../common/services/response.service';
 import { v4 } from 'uuid';
+import { assertEventCategory } from './utils/event-category.utils';
 
 @Injectable()
 export class EventService {
@@ -18,6 +19,7 @@ export class EventService {
   ) {}
 
   create(createEventDto: CreateEventDto) {
+    assertEventCategory(createEventDto.category);
     return this.prismaService.event.create({
       data: {
         id: v4(),
@@ -91,6 +93,7 @@ export class EventService {
   }
 
   update(id: string, updateEventDto: UpdateEventDto) {
+    assertEventCategory(updateEventDto.category);
     return this.prismaService.event.update({
       where: {
         id: id,
