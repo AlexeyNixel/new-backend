@@ -7,6 +7,12 @@ import { v4 } from 'uuid';
 import { Prisma } from 'generated/prisma';
 import { ResponseService } from '../common/services/response.service';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import {
+  ARCHIVE_TAG_POSTS_LIMIT,
+  getArchiveTagIds,
+  stripArchiveTagItems,
+  toArchiveItem,
+} from './utils/archive-tags.utils';
 
 @Injectable()
 export class PageService {
@@ -24,7 +30,9 @@ export class PageService {
       data: {
         id: v4(),
         ...rest,
-        blocks: blocks as unknown as Prisma.InputJsonValue,
+        blocks: stripArchiveTagItems(
+          blocks,
+        ) as unknown as Prisma.InputJsonValue,
       },
     });
   }
@@ -66,7 +74,37 @@ export class PageService {
     if (!page) {
       throw new HttpException('Пользователь не найден', HttpStatus.NOT_FOUND);
     }
-    return page;
+    return { ...page, blocks: await this.withArchiveTagItems(page.blocks) };
+  }
+
+  /**
+   * Блокам-архивам с тегами (`tagIds`) подставляет `tagItems` — новости хотя бы
+   * с одним из тегов, от новых к старым. Ручные ссылки (`items`) не трогает.
+   */
+  private async withArchiveTagItems(blocks: Prisma.JsonValue) {
+    if (!Array.isArray(blocks)) return blocks;
+
+    return Promise.all(
+      blocks.map(async (block) => {
+        const tagIds = getArchiveTagIds(block);
+        if (!tagIds.length) return block;
+
+        const posts = await this.prismaService.post.findMany({
+          where: {
+            isDeleted: false,
+            tags: { some: { tagId: { in: tagIds } } },
+          },
+          select: { title: true, slug: true, publishedAt: true },
+          orderBy: { publishedAt: 'desc' },
+          take: ARCHIVE_TAG_POSTS_LIMIT,
+        });
+
+        return {
+          ...(block as Prisma.JsonObject),
+          tagItems: posts.map(toArchiveItem),
+        };
+      }),
+    );
   }
 
   update(id: string, updatePageDto: UpdatePageDto) {
@@ -77,7 +115,9 @@ export class PageService {
       },
       data: {
         ...rest,
-        blocks: blocks as unknown as Prisma.InputJsonValue,
+        blocks: stripArchiveTagItems(
+          blocks,
+        ) as unknown as Prisma.InputJsonValue,
       },
     });
   }

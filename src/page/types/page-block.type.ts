@@ -89,7 +89,15 @@ export interface PageArchiveBlock {
   type: 'archive';
   title: string;
   note?: string;
+  /** Ссылки, добавленные вручную */
   items: PageArchiveBlockItem[];
+  /** Теги: новости хотя бы с одним из них попадают в архив автоматически */
+  tagIds?: string[];
+  /**
+   * Новости по тегам `tagIds` — вычисляются при отдаче страницы (PageService.findOne),
+   * в БД не хранятся: при сохранении поле вырезается.
+   */
+  tagItems?: PageArchiveBlockItem[];
 }
 
 export type PageContentBlock =
