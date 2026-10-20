@@ -5,6 +5,7 @@ import { PrismaService } from '../prisma.service';
 import { createSlug } from '../common/utils/slugify.utils';
 import { v4 } from 'uuid';
 import { Prisma } from 'generated/prisma';
+import { publishedByNow } from '../posts/utils/published.utils';
 import { ResponseService } from '../common/services/response.service';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import {
@@ -92,6 +93,7 @@ export class PageService {
         const posts = await this.prismaService.post.findMany({
           where: {
             isDeleted: false,
+            ...publishedByNow(),
             tags: { some: { tagId: { in: tagIds } } },
           },
           select: { title: true, slug: true, publishedAt: true, eventDate: true },

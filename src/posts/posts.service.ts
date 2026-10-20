@@ -14,6 +14,7 @@ import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { OldPost } from './dto/old-post.dto';
 import { normalizeEventDate } from './utils/event-date.utils';
+import { publishedByNow } from './utils/published.utils';
 
 @Injectable()
 export class PostsService {
@@ -150,15 +151,19 @@ export class PostsService {
       departmentId: department,
       isDeleted: isDeleted ? undefined : false,
 
-      AND: newTagsArray.map((tag) => ({
-        tags: {
-          some: {
-            tag: {
-              id: tag,
+      AND: [
+        ...newTagsArray.map((tag) => ({
+          tags: {
+            some: {
+              tag: {
+                id: tag,
+              },
             },
           },
-        },
-      })),
+        })),
+        // публичная выдача — без запланированных на будущее
+        ...(isDeleted ? [] : [publishedByNow()]),
+      ],
     };
 
     const [posts, total] = await Promise.all([
@@ -213,6 +218,9 @@ export class PostsService {
 
     if (!isDeleted) {
       conditions.push('p.isDeleted = false');
+      // публичный поиск — без запланированных на будущее
+      conditions.push('p.publishedAt <= ?');
+      conditionParams.push(new Date());
     }
     if (department) {
       conditions.push('p.departmentId = ?');
@@ -309,6 +317,7 @@ export class PostsService {
     const post = await this.prismaService.post.findFirst({
       where: {
         isPinned: true,
+        ...publishedByNow(),
       },
       orderBy: {
         publishedAt: 'desc',
