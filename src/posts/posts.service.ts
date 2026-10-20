@@ -13,6 +13,7 @@ import { toBooleanFulltextQuery } from '../common/utils/fulltext-query';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { OldPost } from './dto/old-post.dto';
+import { normalizeEventDate } from './utils/event-date.utils';
 
 @Injectable()
 export class PostsService {
@@ -56,6 +57,7 @@ export class PostsService {
       data: {
         id: v4(),
         ...newPost,
+        eventDate: normalizeEventDate(newPost.eventDate),
       },
     });
 
@@ -390,6 +392,7 @@ export class PostsService {
       },
       data: {
         ...updateData,
+        eventDate: normalizeEventDate(updateData.eventDate),
       },
     });
   }

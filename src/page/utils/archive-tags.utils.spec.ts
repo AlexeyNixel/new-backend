@@ -41,4 +41,15 @@ describe('archive-tags.utils', () => {
       }),
     ).toEqual({ date: '01.09.2026', text: 'Концерт', url: '/post/koncert' });
   });
+
+  it('toArchiveItem: у анонса — дата мероприятия, а не публикации', () => {
+    expect(
+      toArchiveItem({
+        title: 'Концерт',
+        slug: 'koncert',
+        publishedAt: new Date('2026-08-31T20:00:00Z'),
+        eventDate: new Date('2026-09-15T00:00:00.000Z'),
+      }).date,
+    ).toBe('15.09.2026');
+  });
 });

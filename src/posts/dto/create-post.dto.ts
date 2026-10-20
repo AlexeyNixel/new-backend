@@ -7,6 +7,8 @@ export class CreatePostDto {
   isPinned: boolean;
   departmentId?: string;
   publishedAt?: string;
+  /** Дата мероприятия для новости-анонса, «YYYY-MM-DD»; null — убрать */
+  eventDate?: string | null;
   slug?: string;
   previewFileId?: string;
   tags?: string[];

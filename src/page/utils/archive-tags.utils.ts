@@ -12,6 +12,8 @@ export interface ArchiveTagPost {
   title: string;
   slug: string;
   publishedAt: Date;
+  /** Дата мероприятия новости-анонса (DATE, полночь UTC) */
+  eventDate?: Date | null;
 }
 
 const isArchiveBlock = (block: unknown): block is PageArchiveBlock =>
@@ -46,11 +48,16 @@ export const stripArchiveTagItems = <T>(blocks: T): T => {
   }) as T;
 };
 
-/** Новость → пункт архива (дата — по Новосибирску, как на сайте) */
+/**
+ * Новость → пункт архива. У анонса — дата мероприятия (это просто дата,
+ * без пояса), иначе дата публикации по Новосибирску, как на сайте.
+ */
 export const toArchiveItem = (post: ArchiveTagPost): PageArchiveBlockItem => ({
-  date: DateTime.fromJSDate(post.publishedAt)
-    .setZone('Asia/Novosibirsk')
-    .toFormat('dd.MM.yyyy'),
+  date: post.eventDate
+    ? DateTime.fromJSDate(post.eventDate, { zone: 'utc' }).toFormat('dd.MM.yyyy')
+    : DateTime.fromJSDate(post.publishedAt)
+        .setZone('Asia/Novosibirsk')
+        .toFormat('dd.MM.yyyy'),
   text: post.title,
   url: `/post/${post.slug}`,
 });

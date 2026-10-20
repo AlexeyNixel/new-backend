@@ -94,7 +94,7 @@ export class PageService {
             isDeleted: false,
             tags: { some: { tagId: { in: tagIds } } },
           },
-          select: { title: true, slug: true, publishedAt: true },
+          select: { title: true, slug: true, publishedAt: true, eventDate: true },
           orderBy: { publishedAt: 'desc' },
           take: ARCHIVE_TAG_POSTS_LIMIT,
         });

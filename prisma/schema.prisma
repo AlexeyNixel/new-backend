@@ -26,6 +26,9 @@ model Post {
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
   publishedAt   DateTime          @default(now())
+  /// Дата мероприятия для новости-анонса (только дата). Если указана — сайт
+  /// показывает её вместо даты публикации; сортировка всё равно по publishedAt.
+  eventDate     DateTime?         @db.Date
   title         String            @db.VarChar(200)
   description   String?           @db.LongText
   content       String?           @db.LongText
