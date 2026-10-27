@@ -25,6 +25,7 @@ import { AchievementsModule } from './achievements/achievements.module';
 import { ClubsModule } from './clubs/clubs.module';
 import { MapPointModule } from './map-point/map-point.module';
 import { AuditLogModule } from './audit-log/audit-log.module';
+import { ShortLinkModule } from './short-link/short-link.module';
 
 @Module({
   imports: [
@@ -68,6 +69,7 @@ import { AuditLogModule } from './audit-log/audit-log.module';
     ClubsModule,
     MapPointModule,
     AuditLogModule,
+    ShortLinkModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

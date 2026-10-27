@@ -300,6 +300,24 @@ model MapPoint {
   @@map("map_points")
 }
 
+/// Короткая ссылка для промо: infomania.ru/go/<slug> → url.
+/// Перенаправление делает сайт (server/middleware/short-links.ts) через
+/// GET /api/short-link/resolve/:slug, который заодно считает переходы.
+model ShortLink {
+  id        String   @id @default(uuid())
+  /// Хвост ссылки: латиница, цифры, дефис
+  slug      String   @unique @db.VarChar(100)
+  url       String   @db.VarChar(2000)
+  /// Название для админки (о какой акции ссылка)
+  title     String?  @db.VarChar(200)
+  clicks    Int      @default(0)
+  isDeleted Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("short_links")
+}
+
 enum GameStatus {
   IN_STOCK
   ON_HANDS
