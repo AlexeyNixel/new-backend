@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from 'generated/prisma';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { InjectDataSource } from '@nestjs/typeorm';
@@ -37,31 +38,29 @@ export class EventService {
       sortOrder = 'desc',
       startDate,
       endDate,
+      search = '',
     } = paginationQuery;
 
     const skip = (page - 1) * limit;
+    const query = search.trim();
+    const where: Prisma.EventWhereInput = {
+      isDeleted: isDeleted ? undefined : false,
+      eventTime: {
+        gte: startDate,
+        lte: endDate,
+      },
+      // Событий немного, поэтому без полнотекстового индекса — подстрока
+      // в заголовке (коллация MySQL регистронезависимая)
+      title: query ? { contains: query } : undefined,
+    };
     const [events, total] = await Promise.all([
       this.prismaService.event.findMany({
-        where: {
-          isDeleted: isDeleted ? undefined : false,
-          eventTime: {
-            gte: startDate,
-            lte: endDate,
-          },
-        },
+        where,
         skip,
         take: +limit,
         orderBy: { [sortBy]: sortOrder },
       }),
-      this.prismaService.event.count({
-        where: {
-          isDeleted: isDeleted ? undefined : false,
-          eventTime: {
-            gte: startDate,
-            lte: endDate,
-          },
-        },
-      }),
+      this.prismaService.event.count({ where }),
     ]);
 
     return this.responseService.paginated(
