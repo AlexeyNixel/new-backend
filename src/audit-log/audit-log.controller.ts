@@ -3,8 +3,10 @@ import { AuditLogService } from './audit-log.service';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { ResponseService } from '../common/services/response.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { Section } from '../auth/sections';
 
 @UseGuards(JwtAuthGuard)
+@Section('audit-log')
 @Controller('audit-log')
 export class AuditLogController {
   constructor(

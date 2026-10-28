@@ -18,7 +18,9 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { Audited } from '../common/decorators/audited.decorator';
 import { AuditInterceptor } from '../common/interceptors/audit.interceptor';
+import { Section } from '../auth/sections';
 
+@Section('collections')
 @Controller('book-collection')
 export class BookCategoryController {
   constructor(private readonly bookCategoryService: BookCategoryService) {}

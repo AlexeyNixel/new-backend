@@ -17,7 +17,9 @@ import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Audited } from '../common/decorators/audited.decorator';
 import { AuditInterceptor } from '../common/interceptors/audit.interceptor';
+import { Section } from '../auth/sections';
 
+@Section('clubs')
 @Controller('clubs')
 export class ClubsController {
   constructor(private readonly clubsService: ClubsService) {}
@@ -48,6 +50,7 @@ export class ClubsController {
     return this.clubsService.update(id, updateClubDto);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.clubsService.remove(+id);

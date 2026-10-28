@@ -16,18 +16,22 @@ import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Audited } from '../common/decorators/audited.decorator';
 import { AuditInterceptor } from '../common/interceptors/audit.interceptor';
+import { ADMIN_ONLY, Section } from '../auth/sections';
 
+@Section('posts')
 @Controller('posts')
 export class PostsController {
   constructor(private readonly postsService: PostsService) {}
 
   @UseGuards(JwtAuthGuard)
+  @Section(ADMIN_ONLY)
   @Get('migrate')
   migrate() {
     return this.postsService.migratePosts();
   }
 
   @UseGuards(JwtAuthGuard)
+  @Section(ADMIN_ONLY)
   @Get('migrate/tag')
   migrateTag() {
     return this.postsService.migratePostOnRubric();

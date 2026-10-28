@@ -1,9 +1,11 @@
 import { Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { LinkCheckService } from './link-check.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { Section } from '../auth/sections';
 
 /** Проверка битых ссылок — раздел «Инструменты» админки */
 @UseGuards(JwtAuthGuard)
+@Section('link-check')
 @Controller('link-check')
 export class LinkCheckController {
   constructor(private readonly linkCheckService: LinkCheckService) {}

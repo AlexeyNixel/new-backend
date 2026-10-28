@@ -1,7 +1,9 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import { MigrationService } from './migration.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { ADMIN_ONLY, Section } from '../auth/sections';
 
+@Section(ADMIN_ONLY)
 @Controller('migration')
 export class MigrationController {
   constructor(private readonly migrationService: MigrationService) {}

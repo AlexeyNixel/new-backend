@@ -16,12 +16,15 @@ import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Audited } from '../common/decorators/audited.decorator';
 import { AuditInterceptor } from '../common/interceptors/audit.interceptor';
+import { ADMIN_ONLY, Section } from '../auth/sections';
 
+@Section('departments')
 @Controller('departments')
 export class DepartmentsController {
   constructor(private readonly departmentsService: DepartmentsService) {}
 
   @UseGuards(JwtAuthGuard)
+  @Section(ADMIN_ONLY)
   @Get('/migrate')
   migrate() {
     return this.departmentsService.migrate();

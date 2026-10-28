@@ -114,6 +114,12 @@ export class AuthService {
     }
 
     const { password: _, ...result } = user;
-    return { ...result, canManageUsers: canManageUsers(user.username) };
+    const isManager = canManageUsers(user.username);
+    return {
+      ...result,
+      canManageUsers: isManager,
+      // Администраторам доступно всё, независимо от сохранённого списка
+      sections: isManager ? null : (result.sections ?? null),
+    };
   }
 }

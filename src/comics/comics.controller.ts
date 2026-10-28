@@ -18,7 +18,9 @@ import { CreateComicSeriesDto } from './dto/create-comic-series.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Audited } from '../common/decorators/audited.decorator';
 import { AuditInterceptor } from '../common/interceptors/audit.interceptor';
+import { Section } from '../auth/sections';
 
+@Section('comics')
 @Controller('comics')
 export class ComicsController {
   constructor(private readonly comicsService: ComicsService) {}

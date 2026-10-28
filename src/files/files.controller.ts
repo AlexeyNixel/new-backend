@@ -28,6 +28,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { Audited } from '../common/decorators/audited.decorator';
 import { AuditInterceptor } from '../common/interceptors/audit.interceptor';
+import { ADMIN_ONLY, Section } from '../auth/sections';
 
 @Controller('files')
 export class FilesController {
@@ -46,6 +47,7 @@ export class FilesController {
   }
 
   /** Админка: все выставки, включая скрытые */
+  @Section('exhibitions')
   @UseGuards(JwtAuthGuard)
   @Get('exhibitions/admin')
   findAllExhibitionsAdmin(
@@ -60,6 +62,7 @@ export class FilesController {
     return this.exhibitionsService.findOne(id);
   }
 
+  @Section('exhibitions')
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(AuditInterceptor)
   @Audited('Exhibition')
@@ -68,6 +71,7 @@ export class FilesController {
     return this.exhibitionsService.update(id, dto);
   }
 
+  @Section('exhibitions')
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(FileInterceptor('cover'), AuditInterceptor)
   @Audited('Exhibition')
@@ -79,6 +83,7 @@ export class FilesController {
     return this.exhibitionsService.replaceCover(id, cover);
   }
 
+  @Section('exhibitions')
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(
     FileFieldsInterceptor([
@@ -103,18 +108,21 @@ export class FilesController {
 
   // ---------- Медиатека ----------
 
+  @Section('media')
   @UseGuards(JwtAuthGuard)
   @Get('media')
   findAllMedia(@Query() query: MediaQuery) {
     return this.mediaService.findAll(query);
   }
 
+  @Section('media')
   @UseGuards(JwtAuthGuard)
   @Get('media/:id/usage')
   mediaUsage(@Param('id') id: string) {
     return this.mediaService.usage(id);
   }
 
+  @Section('media')
   @UseGuards(JwtAuthGuard)
   @Delete('media/:id')
   removeMedia(@Param('id') id: string) {
@@ -123,6 +131,7 @@ export class FilesController {
 
   // ---------- Загрузка ----------
 
+  @Section(ADMIN_ONLY)
   @UseGuards(JwtAuthGuard)
   @Get('migrate')
   async migrate() {

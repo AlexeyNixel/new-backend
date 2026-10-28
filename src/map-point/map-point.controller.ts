@@ -16,7 +16,9 @@ import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Audited } from '../common/decorators/audited.decorator';
 import { AuditInterceptor } from '../common/interceptors/audit.interceptor';
+import { Section } from '../auth/sections';
 
+@Section('map-points')
 @Controller('map-point')
 export class MapPointController {
   constructor(private readonly mapPointService: MapPointService) {}

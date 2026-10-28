@@ -39,6 +39,7 @@ describe('AuthService.validateToken', () => {
       isBlocked: false,
       lastLoginAt: null,
       canManageUsers: false,
+      sections: null,
     });
   });
 

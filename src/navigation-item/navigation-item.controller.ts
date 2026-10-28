@@ -15,7 +15,9 @@ import { BatchUpdateNavigationItemDto } from './dto/update-batch.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Audited } from '../common/decorators/audited.decorator';
 import { AuditInterceptor } from '../common/interceptors/audit.interceptor';
+import { Section } from '../auth/sections';
 
+@Section('navigation')
 @Controller('navigation-item')
 export class NavigationItemController {
   constructor(private readonly navigationItemService: NavigationItemService) {}
@@ -34,6 +36,8 @@ export class NavigationItemController {
     return this.navigationItemService.updateOrderBatch(batchUpdateDto.data);
   }
 
+  // Меняет данные — только для вошедших (раньше был открыт всем)
+  @UseGuards(JwtAuthGuard)
   @Get('updateTo')
   updateTo() {
     return this.navigationItemService.updateTo();

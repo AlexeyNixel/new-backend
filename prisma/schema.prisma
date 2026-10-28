@@ -18,6 +18,8 @@ model User {
   /// Заблокирован: войти нельзя, уже выданный токен перестаёт действовать
   isBlocked   Boolean    @default(false)
   lastLoginAt DateTime?
+  /// Разделы админки, доступные сотруднику (ключи из src/auth/sections.ts); null — все разделы
+  sections    Json?
   auditLogs   AuditLog[]
   feedback    Feedback[]
 

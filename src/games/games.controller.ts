@@ -18,24 +18,29 @@ import { CreateGameSeriesDto } from './dto/create-game-series.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Audited } from '../common/decorators/audited.decorator';
 import { AuditInterceptor } from '../common/interceptors/audit.interceptor';
+import { ADMIN_ONLY, Section } from '../auth/sections';
 
+@Section('games')
 @Controller('games')
 export class GamesController {
   constructor(private readonly gamesService: GamesService) {}
 
   @UseGuards(JwtAuthGuard)
+  @Section(ADMIN_ONLY)
   @Get('migrate')
   migrate() {
     return this.gamesService.migrate();
   }
 
   @UseGuards(JwtAuthGuard)
+  @Section(ADMIN_ONLY)
   @Get('regroup-series')
   regroupSeries() {
     return this.gamesService.regroupSeries();
   }
 
   @UseGuards(JwtAuthGuard)
+  @Section(ADMIN_ONLY)
   @Get('backfill-created-at')
   backfillCreatedAt() {
     return this.gamesService.backfillCreatedAtFromExternalId();
