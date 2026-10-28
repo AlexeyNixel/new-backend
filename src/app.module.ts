@@ -26,6 +26,7 @@ import { ClubsModule } from './clubs/clubs.module';
 import { MapPointModule } from './map-point/map-point.module';
 import { AuditLogModule } from './audit-log/audit-log.module';
 import { ShortLinkModule } from './short-link/short-link.module';
+import { FeedbackModule } from './feedback/feedback.module';
 
 @Module({
   imports: [
@@ -70,6 +71,7 @@ import { ShortLinkModule } from './short-link/short-link.module';
     MapPointModule,
     AuditLogModule,
     ShortLinkModule,
+    FeedbackModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

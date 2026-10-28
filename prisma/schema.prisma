@@ -16,6 +16,7 @@ model User {
   name      String?
   createdAt DateTime   @default(now())
   auditLogs AuditLog[]
+  feedback  Feedback[]
 
   @@map("users")
 }
@@ -125,6 +126,7 @@ model File {
   gameImages     GameImage[]
   gameRulesFor   Game[]            @relation("GameRulesFile")
   comicImages    ComicImage[]
+  feedback       Feedback[]
 
   @@map("files")
 }
@@ -508,4 +510,38 @@ model AuditLog {
   @@index([entityType, entityId])
   @@index([userId])
   @@map("audit_logs")
+}
+
+enum FeedbackType {
+  /// Что-то работает не так
+  BUG
+  /// Работает, но нужно переделать
+  CHANGE
+  /// Предложение нового
+  IDEA
+}
+
+/// Ошибки и пожелания по админке от её пользователей (замена «подойти к разработчику»)
+model Feedback {
+  id           String       @id @default(uuid())
+  type         FeedbackType
+  title        String       @db.VarChar(200)
+  description  String?      @db.Text
+  /// Страница админки, с которой сообщили (путь вида /post/admin/<id>)
+  pageUrl      String?      @db.VarChar(500)
+  screenshotId String?
+  screenshot   File?        @relation(fields: [screenshotId], references: [id], onDelete: SetNull)
+  authorId     String?
+  author       User?        @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  isDone       Boolean      @default(false)
+  doneAt       DateTime?
+  /// Ответ разработчика: что сделано или почему не будет сделано
+  response     String?      @db.Text
+  isDeleted    Boolean      @default(false)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([isDone, isDeleted])
+  @@index([authorId])
+  @@map("feedback")
 }
