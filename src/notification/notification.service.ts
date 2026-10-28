@@ -27,36 +27,30 @@ export class NotificationService {
 
     const skip = (page - 1) * limit;
 
+    // isDeleted=true — запрос админки: все уведомления, включая скрытые,
+    // прошедшие и запланированные. Иначе (сайт) — только актуальные сейчас.
+    const withAll = !!isDeleted;
+    const now = new Date().toISOString();
+
+    const where = withAll
+      ? {}
+      : {
+          isDeleted: false,
+          startTime: { lte: now },
+          endTime: { gte: now },
+        };
+
     const [notifications, total] = await Promise.all([
       this.prismaService.notification.findMany({
-        where: {
-          isDeleted: isDeleted ? undefined : false,
-          startTime: {
-            lte: new Date().toISOString(),
-          },
-
-          endTime: {
-            gte: new Date().toISOString(),
-          },
-        },
+        where,
+        orderBy: withAll ? { startTime: 'desc' } : undefined,
         skip: skip,
         take: +limit,
       }),
-      this.prismaService.notification.count({
-        where: {
-          isDeleted: isDeleted ? undefined : false,
-          startTime: {
-            lte: new Date().toISOString(),
-          },
-
-          endTime: {
-            gte: new Date().toISOString(),
-          },
-        },
-      }),
+      this.prismaService.notification.count({ where }),
     ]);
 
-    if (notifications.length < 1) {
+    if (!withAll && notifications.length < 1) {
       return {
         title: 'Актуальных оповещений нет',
         status: 'empty',
