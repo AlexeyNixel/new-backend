@@ -60,9 +60,9 @@ export class MinioService {
         key,
         fileBuffer,
         fileBuffer.length,
-        {
-          contentType: mimeType,
-        },
+        // Ключ именно 'Content-Type': иначе minio кладёт его в x-amz-meta-contenttype,
+        // а файл отдаётся как binary/octet-stream (с nosniff — скачивается, а не открывается)
+        { 'Content-Type': mimeType },
       );
 
       // Путь `/<bucket>/<key>` без хоста — в том же формате, что хранится в File.path
