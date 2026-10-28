@@ -10,7 +10,7 @@ import { readDirRecursive } from '../common/utils/read-dir.utils';
 const minioClient = new Minio.Client({
   endPoint: process.env['MINIO_ENDPOINT'] || '',
   port: Number(process.env['MINIO_PORT']) || 123,
-  useSSL: false,
+  useSSL: process.env['MINIO_USE_SSL'] === 'true',
   accessKey: process.env['MINIO_USER'] || '',
   secretKey: process.env['MINIO_PASS'] || '',
 });

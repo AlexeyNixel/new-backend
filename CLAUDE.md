@@ -85,7 +85,7 @@ test/              - e2e тесты
 - `DATABASE_URL` — строка подключения MySQL для Prisma
 - `PORT` — порт сервера (по умолчанию 3333)
 - `JWT_SECRET` — секрет для JWT
-- `MINIO_*` — конфигурация MinIO (endpoint, port, user, pass, bucket)
+- `MINIO_*` — конфигурация S3-хранилища Silo (форк MinIO, `s3.infomania.ru`): endpoint, port, `MINIO_USE_SSL=true` для https, user, pass, bucket
 - `SOURCE_DB_*` / `TARGET_DB_*` — параметры подключения для модуля миграции
 - `FEEDBACK_MANAGERS` — логины разработчиков через запятую (модуль `feedback`, «Ошибки и пожелания» в админке): только они отмечают обращения выполненными и отвечают авторам. Не задано — может любой авторизованный.
 

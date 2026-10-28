@@ -11,8 +11,8 @@ export class MinioService {
   constructor(private configServices: ConfigService) {
     this.minioClient = new Minio.Client({
       endPoint: this.configServices.get('MINIO_ENDPOINT') || '',
-      port: this.configServices.get('MINIO_PORT') || undefined,
-      useSSL: false,
+      port: Number(this.configServices.get('MINIO_PORT')) || undefined,
+      useSSL: this.configServices.get('MINIO_USE_SSL') === 'true',
       accessKey: this.configServices.get('MINIO_USER') || undefined,
       secretKey: this.configServices.get('MINIO_PASS') || undefined,
     });
@@ -65,16 +65,9 @@ export class MinioService {
         },
       );
 
-      const url = await this.minioClient.presignedUrl(
-        'GET',
-        this.bucketName,
-        key,
-      );
-
-      const cleanUrl = url.split('?')[0];
-
+      // Путь `/<bucket>/<key>` без хоста — в том же формате, что хранится в File.path
       return {
-        url: cleanUrl,
+        url: `/${this.bucketName}/${key}`,
         key,
         size: fileBuffer.length,
         etag: result.etag,

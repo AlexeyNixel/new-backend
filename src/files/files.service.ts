@@ -95,7 +95,6 @@ export class FilesService {
 
       const resultWithDimensions = {
         ...uploadResult,
-        url: uploadResult.url.split('10001')[1],
         width: processedImage.width,
         height: processedImage.height,
       };
@@ -329,14 +328,9 @@ export class FilesService {
 
     const decodeName = this.decodeFileName(file.originalname);
 
-    const resultWithDimensions = {
-      ...result,
-      url: result.url.split('10001')[1],
-    };
-
     return this.saveFileToDatabase(
       { ...file, originalname: decodeName },
-      resultWithDimensions,
+      result,
       'DOCUMENT',
     );
   }
