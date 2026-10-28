@@ -1,4 +1,7 @@
-import { PartialType } from '@nestjs/mapped-types';
-import { CreateUserDto } from './create-user.dto';
-
-export class UpdateUserDto extends PartialType(CreateUserDto) {}
+/** Логин не меняется: по нему определяются права (см. user-managers.ts) */
+export class UpdateUserDto {
+  name?: string | null;
+  /** Новый пароль — сброс администратором */
+  password?: string;
+  isBlocked?: boolean;
+}

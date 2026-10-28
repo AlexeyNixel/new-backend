@@ -77,59 +77,63 @@ export class MinioService {
     }
   }
 
-  async uploadExhibition(zipBuffer: Buffer, baseMinioPath: string) {
-    const zip = new AdmZip(zipBuffer);
-    const zipEntries = zip.getEntries();
-    const fileEntries = zipEntries.filter((entry) => !entry.isDirectory);
+  /**
+   * Разбирает ZIP-пакет выставки (iSpring) без загрузки: файлы с путями
+   * относительно корня пакета. Если всё лежит в одной папке — она отбрасывается.
+   * Служебный мусор архиваторов (`__MACOSX`, `.DS_Store`) и пути с `..` пропускаются.
+   */
+  readExhibitionZip(zipBuffer: Buffer) {
+    const entries = new AdmZip(zipBuffer)
+      .getEntries()
+      .filter((entry) => !entry.isDirectory)
+      .map((entry) => ({ entry, name: entry.entryName.replace(/\\/g, '/') }))
+      .filter(
+        ({ name }) =>
+          !name.startsWith('__MACOSX/') &&
+          !name.endsWith('.DS_Store') &&
+          !name.split('/').includes('..'),
+      );
 
-    let mainHtmlPath: string | undefined;
-
-    const rootFolders = new Set(
-      zipEntries
-        .filter((entry) => entry.isDirectory)
-        .map((entry) => entry.entryName.split('/')[0])
-        .filter(Boolean),
+    const firstSegments = new Set(
+      entries.map(({ name }) => name.split('/')[0]),
     );
+    const [onlySegment] = firstSegments;
+    const rootFolder =
+      firstSegments.size === 1 &&
+      entries.every(({ name }) => name.includes('/'))
+        ? `${onlySegment}/`
+        : '';
 
-    const rootFolder = rootFolders.size === 1 ? Array.from(rootFolders)[0] : '';
+    return entries.map(({ entry, name }) => ({
+      path: name.slice(rootFolder.length),
+      getData: () => entry.getData(),
+    }));
+  }
 
-    const uploadPromises = fileEntries.map(async (entry) => {
-      try {
-        const fileBuffer = entry.getData();
-        const contentType = this.getContentType(entry.entryName);
-        const isIndexHtml = entry.entryName
-          .toLowerCase()
-          .endsWith('index.html');
-
-        let minioKey = `${baseMinioPath}/${entry.entryName}`;
-
-        if (rootFolder && entry.entryName.startsWith(`${rootFolder}/`)) {
-          minioKey = `${baseMinioPath}/${entry.entryName.substring(rootFolder.length + 1)}`;
-        }
-
-        if (isIndexHtml) {
-          mainHtmlPath = minioKey;
-        }
-
-        await this.minioClient.putObject(
-          this.bucketName,
-          minioKey,
-          fileBuffer,
-          fileBuffer.length,
-          { 'Content-Type': contentType },
-        );
-
-        return { success: true, entryName: entry.entryName };
-      } catch (error) {
-        throw new Error(error);
-      }
-    });
-
-    await Promise.all(uploadPromises);
+  async uploadExhibition(
+    files: ReturnType<MinioService['readExhibitionZip']>,
+    baseMinioPath: string,
+  ) {
+    // Пакет из сотен файлов — грузим порциями, чтобы не открыть сотни соединений разом
+    const CONCURRENCY = 8;
+    for (let i = 0; i < files.length; i += CONCURRENCY) {
+      await Promise.all(
+        files.slice(i, i + CONCURRENCY).map(async (file) => {
+          const buffer = file.getData();
+          await this.minioClient.putObject(
+            this.bucketName,
+            `${baseMinioPath}/${file.path}`,
+            buffer,
+            buffer.length,
+            { 'Content-Type': this.getContentType(file.path) },
+          );
+        }),
+      );
+    }
 
     return {
-      totalFiles: fileEntries.length,
-      mainHtmlPath: `/${this.bucketName}${mainHtmlPath}`,
+      totalFiles: files.length,
+      mainHtmlPath: `/${this.bucketName}${baseMinioPath}/index.html`,
     };
   }
 
@@ -160,6 +164,20 @@ export class MinioService {
     const chunks: Buffer[] = [];
     for await (const chunk of stream) chunks.push(chunk as Buffer);
     return Buffer.concat(chunks);
+  }
+
+  /** Лежит ли путь из File.path в бакете сервиса (в бакет `site` писать нельзя) */
+  isOwnPath(path: string) {
+    return path.replace(/^\/+/, '').split('/')[0] === this.bucketName;
+  }
+
+  /** Удаляет объект по пути из File.path — только из бакета сервиса */
+  async removeByPath(path: string) {
+    if (!this.isOwnPath(path)) {
+      throw new Error(`Файл ${path} лежит вне бакета ${this.bucketName}`);
+    }
+    const key = path.replace(/^\/+/, '').split('/').slice(1).join('/');
+    await this.minioClient.removeObject(this.bucketName, key);
   }
 
   private getContentType(filename: string): string {

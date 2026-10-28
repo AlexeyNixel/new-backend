@@ -4,6 +4,7 @@ import {
   Body,
   UseInterceptors,
   UploadedFile,
+  UploadedFiles,
   ParseFilePipe,
   MaxFileSizeValidator,
   FileTypeValidator,
@@ -11,25 +12,116 @@ import {
   UseGuards,
   Param,
   Query,
+  Patch,
+  Delete,
 } from '@nestjs/common';
 import { FilesService } from './files.service';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { ExhibitionsService } from './exhibitions.service';
+import type { UpdateExhibitionDto } from './exhibitions.service';
+import { MediaService } from './media.service';
+import type { MediaQuery } from './media.service';
+import {
+  FileFieldsInterceptor,
+  FileInterceptor,
+} from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { Audited } from '../common/decorators/audited.decorator';
+import { AuditInterceptor } from '../common/interceptors/audit.interceptor';
 
 @Controller('files')
 export class FilesController {
-  constructor(private readonly filesService: FilesService) {}
+  constructor(
+    private readonly filesService: FilesService,
+    private readonly exhibitionsService: ExhibitionsService,
+    private readonly mediaService: MediaService,
+  ) {}
 
+  // ---------- Виртуальные выставки ----------
+
+  /** Публичный: сайт показывает только не скрытые */
   @Get('exhibitions')
   findAllExhibitions(@Query() paginationQuery: PaginationQueryDto) {
-    return this.filesService.findAllExhibitions(paginationQuery);
+    return this.exhibitionsService.findAll(paginationQuery);
+  }
+
+  /** Админка: все выставки, включая скрытые */
+  @UseGuards(JwtAuthGuard)
+  @Get('exhibitions/admin')
+  findAllExhibitionsAdmin(
+    @Query() paginationQuery: PaginationQueryDto,
+    @Query('status') status?: 'visible' | 'hidden',
+  ) {
+    return this.exhibitionsService.findAllAdmin(paginationQuery, status);
   }
 
   @Get('exhibitions/:id')
   findOneExhibition(@Param('id') id: string) {
-    return this.filesService.findOneExhibition(id);
+    return this.exhibitionsService.findOne(id);
   }
+
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(AuditInterceptor)
+  @Audited('Exhibition')
+  @Patch('exhibitions/:id')
+  updateExhibition(@Param('id') id: string, @Body() dto: UpdateExhibitionDto) {
+    return this.exhibitionsService.update(id, dto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FileInterceptor('cover'), AuditInterceptor)
+  @Audited('Exhibition')
+  @Post('exhibitions/:id/cover')
+  replaceExhibitionCover(
+    @Param('id') id: string,
+    @UploadedFile() cover: Express.Multer.File | undefined,
+  ) {
+    return this.exhibitionsService.replaceCover(id, cover);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'file', maxCount: 1 },
+      { name: 'cover', maxCount: 1 },
+    ]),
+    AuditInterceptor,
+  )
+  @Audited('Exhibition')
+  @Post('upload/exhibition')
+  uploadExhibition(
+    @UploadedFiles()
+    files: { file?: Express.Multer.File[]; cover?: Express.Multer.File[] },
+    @Body('title') title?: string,
+  ) {
+    return this.exhibitionsService.upload(
+      files?.file?.[0],
+      files?.cover?.[0],
+      title,
+    );
+  }
+
+  // ---------- Медиатека ----------
+
+  @UseGuards(JwtAuthGuard)
+  @Get('media')
+  findAllMedia(@Query() query: MediaQuery) {
+    return this.mediaService.findAll(query);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('media/:id/usage')
+  mediaUsage(@Param('id') id: string) {
+    return this.mediaService.usage(id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete('media/:id')
+  removeMedia(@Param('id') id: string) {
+    return this.mediaService.remove(id);
+  }
+
+  // ---------- Загрузка ----------
 
   @UseGuards(JwtAuthGuard)
   @Get('migrate')
@@ -65,11 +157,5 @@ export class FilesController {
   @UseInterceptors(FileInterceptor('file'))
   async uploadDocument(@UploadedFile() file: Express.Multer.File) {
     return this.filesService.uploadDocument(file);
-  }
-
-  @Post('upload/exhibition')
-  @UseInterceptors(FileInterceptor('file'))
-  async uploadZip(@UploadedFile() file: Express.Multer.File) {
-    return this.filesService.uploadExhibition(file);
   }
 }

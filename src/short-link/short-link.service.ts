@@ -11,6 +11,11 @@ import { PrismaService } from '../prisma.service';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { ResponseService } from '../common/services/response.service';
 import { v4 } from 'uuid';
+import { DateTime } from 'luxon';
+
+/** Сутки для статистики переходов считаем по времени библиотеки */
+const LIBRARY_ZONE = 'Asia/Novosibirsk';
+const MAX_STATS_DAYS = 365;
 
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 // Без похожих символов (0/o, 1/l/i) — ссылку могут перепечатывать с листовки
@@ -118,11 +123,48 @@ export class ShortLinkService {
       throw new NotFoundException('Короткая ссылка не найдена');
     }
 
-    await this.prismaService.shortLink.update({
-      where: { id: shortLink.id },
-      data: { clicks: { increment: 1 } },
-    });
+    const day = this.dayKey(DateTime.now().setZone(LIBRARY_ZONE));
+    await this.prismaService.$transaction([
+      this.prismaService.shortLink.update({
+        where: { id: shortLink.id },
+        data: { clicks: { increment: 1 } },
+      }),
+      this.prismaService.shortLinkClickDay.upsert({
+        where: { shortLinkId_day: { shortLinkId: shortLink.id, day } },
+        create: { shortLinkId: shortLink.id, day, clicks: 1 },
+        update: { clicks: { increment: 1 } },
+      }),
+    ]);
     return { url: shortLink.url };
+  }
+
+  /**
+   * Переходы по дням за последние `days` суток (дни без переходов — с нулём).
+   * По дням переходы считаются с момента обновления — более ранние учтены
+   * только в общем счётчике `clicks`.
+   */
+  async stats(id: string, days = 30) {
+    const span = Math.min(Math.max(Math.floor(days) || 30, 1), MAX_STATS_DAYS);
+    const today = DateTime.now().setZone(LIBRARY_ZONE).startOf('day');
+    const first = today.minus({ days: span - 1 });
+
+    const rows = await this.prismaService.shortLinkClickDay.findMany({
+      where: { shortLinkId: id, day: { gte: this.dayKey(first) } },
+      orderBy: { day: 'asc' },
+    });
+    const byDay = new Map(
+      rows.map((row) => [row.day.toISOString().slice(0, 10), row.clicks]),
+    );
+
+    return Array.from({ length: span }, (_, i) => {
+      const day = first.plus({ days: i }).toISODate()!;
+      return { day, clicks: byDay.get(day) ?? 0 };
+    });
+  }
+
+  /** Колонка DATE: местная дата, записанная как полночь UTC */
+  private dayKey(date: DateTime) {
+    return new Date(`${date.toISODate()}T00:00:00.000Z`);
   }
 
   update(id: string, updateShortLinkDto: UpdateShortLinkDto) {

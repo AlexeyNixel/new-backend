@@ -41,6 +41,13 @@ export class ShortLinkController {
     return this.shortLinkService.resolve(slug);
   }
 
+  /** Переходы по дням: ?days=30 */
+  @UseGuards(JwtAuthGuard)
+  @Get(':id/stats')
+  stats(@Param('id') id: string, @Query('days') days?: string) {
+    return this.shortLinkService.stats(id, Number(days) || 30);
+  }
+
   @UseGuards(JwtAuthGuard)
   @Get(':id')
   findOne(@Param('id') id: string) {

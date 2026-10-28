@@ -81,7 +81,10 @@ describe('AuditLogService', () => {
       expect(prismaMock.auditLog.count).toHaveBeenCalledWith({
         where: { entityType: 'Post', entityId: 'post1' },
       });
-      expect(result).toEqual({ items: [{ id: 'log1' }], total: 1 });
+      expect(result).toEqual({
+        items: [{ id: 'log1', entityTitle: null, entitySlug: null }],
+        total: 1,
+      });
     });
 
     it('без фильтров передаёт пустой where', async () => {

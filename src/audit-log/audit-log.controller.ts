@@ -12,17 +12,26 @@ export class AuditLogController {
     private readonly responseService: ResponseService,
   ) {}
 
+  /** Сотрудники, у которых есть изменения, — для фильтра в журнале */
+  @Get('authors')
+  authors() {
+    return this.auditLogService.authors();
+  }
+
   @Get()
   async findAll(
     @Query() paginationQuery: PaginationQueryDto,
     @Query('entityType') entityType: string,
     @Query('entityId') entityId: string,
+    @Query('userId') userId: string,
+    @Query('from') from: string,
+    @Query('to') to: string,
   ) {
     const page = Number(paginationQuery.page) || 1;
-    const limit = Number(paginationQuery.limit) || 10;
+    const limit = Math.min(Number(paginationQuery.limit) || 10, 100);
 
     const { items, total } = await this.auditLogService.findAll(
-      { entityType, entityId },
+      { entityType, entityId, userId, from, to },
       page,
       limit,
     );

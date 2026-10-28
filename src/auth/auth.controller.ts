@@ -15,11 +15,14 @@ import { LoginDto } from './dto/login.dto';
 import type { Request, Response } from 'express';
 import { RegisterDTO } from './dto/register.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { UserManagerGuard } from '../user/guards/user-manager.guard';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  /** Новых сотрудников заводят администраторы (раздел «Пользователи») */
+  @UseGuards(JwtAuthGuard, UserManagerGuard)
   @Post('register')
   async register(@Body() registerDto: RegisterDTO) {
     return this.authService.register(registerDto);

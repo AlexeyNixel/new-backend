@@ -14,6 +14,8 @@ describe('AuthService.validateToken', () => {
     password: 'bcrypt-hash',
     name: 'Админ',
     createdAt: new Date('2026-01-01T00:00:00Z'),
+    isBlocked: false,
+    lastLoginAt: null,
   };
 
   const makeService = (findByIdResult: unknown) => {
@@ -34,7 +36,26 @@ describe('AuthService.validateToken', () => {
       username: 'admin',
       name: 'Админ',
       createdAt: fakeUser.createdAt,
+      isBlocked: false,
+      lastLoginAt: null,
+      canManageUsers: false,
     });
+  });
+
+  it('отмечает управляющих пользователями (slip, mgairat)', async () => {
+    const service = makeService({ ...fakeUser, username: 'slip' });
+
+    const result = await service.validateToken({ sub: 'u1' });
+
+    expect(result.canManageUsers).toBe(true);
+  });
+
+  it('не пускает заблокированного пользователя даже с действующим токеном', async () => {
+    const service = makeService({ ...fakeUser, isBlocked: true });
+
+    await expect(service.validateToken({ sub: 'u1' })).rejects.toThrow(
+      UnauthorizedException,
+    );
   });
 
   it('бросает UnauthorizedException, если пользователь не найден', async () => {

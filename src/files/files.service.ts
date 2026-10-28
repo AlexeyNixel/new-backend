@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { ImageProcessingService } from '../common/services/image-processing.service';
 import { MinioService } from '../common/services/minio.service';
@@ -6,9 +6,7 @@ import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import * as crypto from 'crypto';
 import { ConfigService } from '@nestjs/config';
-import { v4 } from 'uuid';
 import { Prisma } from 'generated/prisma';
-import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { ResponseService } from '../common/services/response.service';
 
 export interface BackfillStats {
@@ -237,73 +235,6 @@ export class FilesService {
       .replace(/^\/+/, '')
       .replace(/\.[^./]+$/, '');
     return `variants/${withoutExt}-w${width}.webp`;
-  }
-
-  async uploadExhibition(file: Express.Multer.File) {
-    const id = v4();
-    const fileName = file.originalname.split('.')[0];
-    const baseMinioPath = `/exhibitions/${fileName}`;
-
-    try {
-      const result = await this.minioService.uploadExhibition(
-        file.buffer,
-        baseMinioPath,
-      );
-
-      if (result && result.mainHtmlPath) {
-        return await this.prismaService.file.create({
-          data: {
-            id: id,
-            originalName: file.originalname,
-            mimeType: 'text/html',
-            path: result.mainHtmlPath,
-            type: 'EXHIBITION',
-            size: file.size,
-            width: 0,
-            height: 0,
-          },
-        });
-      }
-    } catch (error) {
-      throw new Error(error);
-    }
-  }
-
-  async findAllExhibitions(paginationQuery: PaginationQueryDto) {
-    const {
-      page = 1,
-      limit = 10,
-      search,
-      sortOrder = 'desc',
-    } = paginationQuery;
-    const where: Prisma.FileWhereInput = {
-      type: 'EXHIBITION',
-      ...(search && { originalName: { contains: search } }),
-    };
-
-    const [exhibitions, total] = await Promise.all([
-      this.prismaService.file.findMany({
-        where,
-        orderBy: { createdAt: sortOrder === 'asc' ? 'asc' : 'desc' },
-        skip: (+page - 1) * +limit,
-        take: +limit,
-      }),
-      this.prismaService.file.count({ where }),
-    ]);
-
-    return this.responseService.paginated(exhibitions, total, +page, +limit);
-  }
-
-  async findOneExhibition(id: string) {
-    const exhibition = await this.prismaService.file.findFirst({
-      where: { id, type: 'EXHIBITION' },
-    });
-
-    if (!exhibition) {
-      throw new NotFoundException(`Выставка с id ${id} не найдена`);
-    }
-
-    return exhibition;
   }
 
   async uploadDocument(file: Express.Multer.File) {

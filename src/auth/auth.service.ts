@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { UserService } from '../user/user.service';
 import { JwtService } from '@nestjs/jwt';
 import { Response } from 'express';
+import { canManageUsers } from '../user/user-managers';
 
 @Injectable()
 export class AuthService {
@@ -24,6 +25,13 @@ export class AuthService {
     if (!isPasswordValid) {
       throw new UnauthorizedException('Неверный логин или пароль');
     }
+
+    if (user.isBlocked) {
+      throw new UnauthorizedException('Учётная запись заблокирована');
+    }
+
+    // Время входа — для раздела «Пользователи»; сбой записи не мешает войти
+    await this.userService.touchLastLogin(user.id).catch(() => undefined);
 
     const { password: _, ...result } = user;
     return result;
@@ -100,8 +108,12 @@ export class AuthService {
     if (!user) {
       throw new UnauthorizedException('Пользователь не найден');
     }
+    // Блокировка действует сразу, не дожидаясь истечения токена
+    if (user.isBlocked) {
+      throw new UnauthorizedException('Учётная запись заблокирована');
+    }
 
     const { password: _, ...result } = user;
-    return result;
+    return { ...result, canManageUsers: canManageUsers(user.username) };
   }
 }

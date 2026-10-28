@@ -27,6 +27,7 @@ import { MapPointModule } from './map-point/map-point.module';
 import { AuditLogModule } from './audit-log/audit-log.module';
 import { ShortLinkModule } from './short-link/short-link.module';
 import { FeedbackModule } from './feedback/feedback.module';
+import { LinkCheckModule } from './link-check/link-check.module';
 
 @Module({
   imports: [
@@ -72,6 +73,7 @@ import { FeedbackModule } from './feedback/feedback.module';
     AuditLogModule,
     ShortLinkModule,
     FeedbackModule,
+    LinkCheckModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

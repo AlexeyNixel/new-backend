@@ -10,13 +10,16 @@ datasource db {
 }
 
 model User {
-  id        String     @id @default(uuid())
-  username  String     @unique
-  password  String
-  name      String?
-  createdAt DateTime   @default(now())
-  auditLogs AuditLog[]
-  feedback  Feedback[]
+  id          String     @id @default(uuid())
+  username    String     @unique
+  password    String
+  name        String?
+  createdAt   DateTime   @default(now())
+  /// Заблокирован: войти нельзя, уже выданный токен перестаёт действовать
+  isBlocked   Boolean    @default(false)
+  lastLoginAt DateTime?
+  auditLogs   AuditLog[]
+  feedback    Feedback[]
 
   @@map("users")
 }
@@ -109,6 +112,10 @@ model File {
   hash           String?           @unique @db.VarChar(64)
   type           FileType
   path           String            @db.VarChar(400)
+  /// Название выставки (у остальных файлов не заполняется)
+  title          String?           @db.VarChar(300)
+  /// Выставка скрыта с сайта
+  isHidden       Boolean           @default(false)
   size           Int
   width          Int?
   height         Int?
@@ -306,18 +313,49 @@ model MapPoint {
 /// Перенаправление делает сайт (server/middleware/short-links.ts) через
 /// GET /api/short-link/resolve/:slug, который заодно считает переходы.
 model ShortLink {
-  id        String   @id @default(uuid())
+  id        String              @id @default(uuid())
   /// Хвост ссылки: латиница, цифры, дефис
-  slug      String   @unique @db.VarChar(100)
-  url       String   @db.VarChar(2000)
+  slug      String              @unique @db.VarChar(100)
+  url       String              @db.VarChar(2000)
   /// Название для админки (о какой акции ссылка)
-  title     String?  @db.VarChar(200)
-  clicks    Int      @default(0)
-  isDeleted Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  title     String?             @db.VarChar(200)
+  clicks    Int                 @default(0)
+  isDeleted Boolean             @default(false)
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+  clickDays ShortLinkClickDay[]
 
   @@map("short_links")
+}
+
+/// Переходы по короткой ссылке за день — для графика в админке
+model ShortLinkClickDay {
+  shortLinkId String
+  day         DateTime  @db.Date
+  clicks      Int       @default(0)
+  shortLink   ShortLink @relation(fields: [shortLinkId], references: [id], onDelete: Cascade)
+
+  @@id([shortLinkId, day])
+  @@map("short_link_clicks")
+}
+
+/// Результат проверки битых ссылок (раздел «Проверка ссылок» в админке)
+model LinkCheckReport {
+  id          String    @id @default(uuid())
+  /// RUNNING | DONE | FAILED
+  status      String    @db.VarChar(20)
+  startedAt   DateTime  @default(now())
+  finishedAt  DateTime?
+  /// Сколько адресов нужно проверить и сколько уже проверено
+  total       Int       @default(0)
+  checked     Int       @default(0)
+  brokenCount Int       @default(0)
+  /// Битые адреса: [{ url, status, error, sources: [{ type, id, title }] }]
+  results     Json?
+  error       String?   @db.Text
+
+  @@index([startedAt])
+  @@map("link_check_reports")
 }
 
 enum GameStatus {
@@ -408,24 +446,24 @@ model GameSeries {
 }
 
 model Comic {
-  id           String            @id @default(uuid())
-  slug         String            @unique @db.VarChar(300)
-  title        String            @db.VarChar(256)
-  description  String?           @db.LongText
-  content      String?           @db.LongText
-  author       String?           @db.VarChar(200)
-  illustrator  String?           @db.VarChar(200)
+  id           String           @id @default(uuid())
+  slug         String           @unique @db.VarChar(300)
+  title        String           @db.VarChar(256)
+  description  String?          @db.LongText
+  content      String?          @db.LongText
+  author       String?          @db.VarChar(200)
+  illustrator  String?          @db.VarChar(200)
   volumeNumber Int?
   year         Int?
   ageRating    Int?
-  externalLink String?           @db.VarChar(500)
-  isDeleted    Boolean           @default(false)
+  externalLink String?          @db.VarChar(500)
+  isDeleted    Boolean          @default(false)
   seriesId     String?
-  series       ComicSeries?      @relation(fields: [seriesId], references: [id])
+  series       ComicSeries?     @relation(fields: [seriesId], references: [id])
   images       ComicImage[]
   genres       GenresOnComics[]
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
 
   @@index([seriesId])
   @@map("comics")
