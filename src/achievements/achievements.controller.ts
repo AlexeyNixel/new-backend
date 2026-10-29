@@ -16,7 +16,7 @@ import { Audited } from '../common/decorators/audited.decorator';
 import { AuditInterceptor } from '../common/interceptors/audit.interceptor';
 import { Section } from '../auth/sections';
 
-@Section('games')
+@Section('achievements')
 @Controller('achievements')
 export class AchievementsController {
   constructor(private readonly achievementsService: AchievementsService) {}
@@ -29,9 +29,23 @@ export class AchievementsController {
     return this.achievementsService.create(createAchievementDto);
   }
 
+  /** Публичный: сайт показывает только не скрытые счётчики */
   @Get()
   findAll() {
     return this.achievementsService.findAll();
+  }
+
+  /** Админка: все счётчики, включая скрытые */
+  @UseGuards(JwtAuthGuard)
+  @Get('admin')
+  findAllAdmin() {
+    return this.achievementsService.findAllAdmin();
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.achievementsService.findOne(id);
   }
 
   @UseGuards(JwtAuthGuard)

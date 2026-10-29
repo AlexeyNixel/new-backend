@@ -12,6 +12,7 @@ export const SECTIONS = {
   tags: 'Теги',
   exhibitions: 'Выставки',
   media: 'Медиатека',
+  achievements: 'Достижения',
   books: 'Книги',
   collections: 'Сборники книг',
   games: 'Игры',
