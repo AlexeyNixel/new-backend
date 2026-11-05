@@ -167,4 +167,21 @@ export class FilesController {
   async uploadDocument(@UploadedFile() file: Express.Multer.File) {
     return this.filesService.uploadDocument(file);
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('upload/audio')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadAudio(
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 300 * 1024 * 1024 }), // 300MB
+          new FileTypeValidator({ fileType: /^audio\// }),
+        ],
+      }),
+    )
+    file: Express.Multer.File,
+  ) {
+    return this.filesService.uploadAudio(file);
+  }
 }

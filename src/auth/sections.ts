@@ -15,6 +15,7 @@ export const SECTIONS = {
   achievements: 'Достижения',
   books: 'Книги',
   collections: 'Сборники книг',
+  podcasts: 'Подкасты',
   games: 'Игры',
   comics: 'Комиксы',
   events: 'События',

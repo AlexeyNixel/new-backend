@@ -17,6 +17,7 @@ import { EventModule } from './event/event.module';
 import { PrismaModule } from './prisma.module';
 import { BookModule } from './book/book.module';
 import { BookCategoryModule } from './book-category/book-category.module';
+import { PodcastsModule } from './podcasts/podcasts.module';
 import { NotificationModule } from './notification/notification.module';
 import { PageModule } from './page/page.module';
 import { GamesModule } from './games/games.module';
@@ -63,6 +64,7 @@ import { LinkCheckModule } from './link-check/link-check.module';
     EventModule,
     BookModule,
     BookCategoryModule,
+    PodcastsModule,
     NotificationModule,
     PageModule,
     GamesModule,

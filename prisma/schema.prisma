@@ -136,6 +136,7 @@ model File {
   gameRulesFor   Game[]            @relation("GameRulesFile")
   comicImages    ComicImage[]
   feedback       Feedback[]
+  podcasts       Podcast[]         @relation("PodcastAudioFile")
 
   @@map("files")
 }
@@ -213,6 +214,21 @@ model Book {
 
   @@index([previewFileId])
   @@map("books")
+}
+
+/// Аудио-подкаст: название + ссылка на аудиофайл, загруженный в хранилище Silo
+model Podcast {
+  id          String   @id @default(uuid())
+  title       String   @db.VarChar(300)
+  description String?  @db.Text
+  audioFileId String?
+  audio       File?    @relation("PodcastAudioFile", fields: [audioFileId], references: [id])
+  isDeleted   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([audioFileId])
+  @@map("podcasts")
 }
 
 model BookCollection {

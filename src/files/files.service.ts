@@ -266,6 +266,41 @@ export class FilesService {
     );
   }
 
+  /** Загрузка аудио подкаста в хранилище Silo (File.type = AUDIO) */
+  async uploadAudio(file: Express.Multer.File) {
+    const hash = this.generateHash(file.buffer);
+
+    const findCopy = await this.prismaService.file.findUnique({
+      where: {
+        hash: hash,
+      },
+    });
+
+    if (findCopy) {
+      return findCopy;
+    }
+
+    const decodeName = this.decodeFileName(file.originalname);
+
+    const result = await this.minioService.uploadFile(
+      file.buffer,
+      decodeName,
+      file.mimetype,
+      'audios',
+    );
+
+    return this.prismaService.file.create({
+      data: {
+        originalName: decodeName,
+        mimeType: file.mimetype,
+        hash,
+        type: 'AUDIO',
+        path: result.url,
+        size: result.size,
+      },
+    });
+  }
+
   private saveFileToDatabase(
     originalFile: Express.Multer.File,
     result: UploadImageResult,
