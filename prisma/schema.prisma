@@ -153,6 +153,10 @@ model Event {
   category  EventCategory?
   createdAt DateTime       @default(now())
   isDeleted Boolean        @default(false)
+  /// Ссылка на покупку билета (касса)
+  ticketUrl String?        @db.VarChar(1000)
+  /// Билет можно купить по Пушкинской карте
+  isPushkin Boolean        @default(false)
 
   @@map("events")
 }

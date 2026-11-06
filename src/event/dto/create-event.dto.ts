@@ -7,7 +7,11 @@ export class CreateEventDto {
   age: number;
   place: string;
   eventTime: Date;
-  /** Тип события для афиши; null — снять тип (сайт определит его по названию) */
+  /** Тип события для афиши; null — не указан (сайт угадывает по названию) */
   category?: EventCategoryValue | null;
   isDeleted: boolean;
+  /** Ссылка на покупку билета (касса); только http(s), пустая строка = нет ссылки */
+  ticketUrl?: string | null;
+  /** Билет можно купить по Пушкинской карте */
+  isPushkin?: boolean;
 }
