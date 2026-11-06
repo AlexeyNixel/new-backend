@@ -8,6 +8,7 @@ import * as crypto from 'crypto';
 import { ConfigService } from '@nestjs/config';
 import { Prisma } from 'generated/prisma';
 import { ResponseService } from '../common/services/response.service';
+import { readAudioDuration } from './utils/audio-duration.utils';
 
 export interface BackfillStats {
   processed: number;
@@ -281,6 +282,7 @@ export class FilesService {
     }
 
     const decodeName = this.decodeFileName(file.originalname);
+    const duration = await readAudioDuration(file.buffer);
 
     const result = await this.minioService.uploadFile(
       file.buffer,
@@ -297,6 +299,7 @@ export class FilesService {
         type: 'AUDIO',
         path: result.url,
         size: result.size,
+        duration,
       },
     });
   }

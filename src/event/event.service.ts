@@ -9,6 +9,8 @@ import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { ResponseService } from '../common/services/response.service';
 import { v4 } from 'uuid';
 import { assertEventCategory } from './utils/event-category.utils';
+import { normalizeTicketUrl } from './utils/event-ticket-url.utils';
+import { syncTicketBlock } from './utils/event-ticket-block.utils';
 
 @Injectable()
 export class EventService {
@@ -21,10 +23,19 @@ export class EventService {
 
   create(createEventDto: CreateEventDto) {
     assertEventCategory(createEventDto.category);
+    const { ticketUrl, ...rest } = createEventDto;
+    const normalizedTicketUrl = normalizeTicketUrl(ticketUrl) ?? null;
     return this.prismaService.event.create({
       data: {
         id: v4(),
-        ...createEventDto,
+        ...rest,
+        ticketUrl: normalizedTicketUrl,
+        // ссылка дублируется блоком «Купить билет» в описании — как редакторы делали вручную
+        content: syncTicketBlock(
+          createEventDto.content,
+          normalizedTicketUrl,
+          !!createEventDto.isPushkin,
+        ),
       },
     });
   }
@@ -91,14 +102,46 @@ export class EventService {
     }
   }
 
-  update(id: string, updateEventDto: UpdateEventDto) {
+  async update(id: string, updateEventDto: UpdateEventDto) {
     assertEventCategory(updateEventDto.category);
+    const { ticketUrl, ...rest } = updateEventDto;
+    const normalizedTicketUrl = normalizeTicketUrl(ticketUrl);
+
+    const current = await this.prismaService.event.findUnique({
+      where: { id },
+      select: { content: true, ticketUrl: true, isPushkin: true },
+    });
+
+    // Описание переписываем, только если меняется ссылка, признак карты или сам текст
+    const touchesTicket =
+      normalizedTicketUrl !== undefined ||
+      updateEventDto.isPushkin !== undefined ||
+      updateEventDto.content !== undefined;
+
+    const contentData =
+      current && touchesTicket
+        ? {
+            content: syncTicketBlock(
+              updateEventDto.content ?? current.content,
+              normalizedTicketUrl === undefined
+                ? current.ticketUrl
+                : normalizedTicketUrl,
+              updateEventDto.isPushkin ?? current.isPushkin,
+            ),
+          }
+        : {};
+
     return this.prismaService.event.update({
       where: {
         id: id,
       },
       data: {
-        ...updateEventDto,
+        ...rest,
+        ...contentData,
+        // undefined — поле не трогаем, null — очищаем ссылку
+        ...(normalizedTicketUrl === undefined
+          ? {}
+          : { ticketUrl: normalizedTicketUrl }),
       },
     });
   }

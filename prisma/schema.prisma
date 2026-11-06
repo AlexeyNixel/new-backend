@@ -121,6 +121,8 @@ model File {
   size           Int
   width          Int?
   height         Int?
+  /// Длительность аудио в секундах (File.type = AUDIO); null — не посчитана
+  duration       Int?
   /// Уменьшенные копии для srcset: { "400": "/dev/variants/...-w400.webp", "800": ... }.
   /// null — копии ещё не создавались, {} — картинка слишком маленькая, копии не нужны
   variants       Json?
@@ -153,6 +155,10 @@ model Event {
   category  EventCategory?
   createdAt DateTime       @default(now())
   isDeleted Boolean        @default(false)
+  /// Ссылка на покупку билета (касса)
+  ticketUrl String?        @db.VarChar(1000)
+  /// Билет можно купить по Пушкинской карте
+  isPushkin Boolean        @default(false)
 
   @@map("events")
 }
